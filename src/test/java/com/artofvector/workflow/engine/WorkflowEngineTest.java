@@ -43,6 +43,76 @@ class WorkflowEngineTest {
     }
 
     @Test
+    void unconnectedNodesFollowRunOrder() {
+        WorkflowGraph graph = new WorkflowGraph();
+        WorkflowNode later = NodeType.COMMAND.create();
+        later.setRunOrder(2);
+        WorkflowNode earlier = NodeType.COMMAND.create();
+        earlier.setRunOrder(1);
+        graph.addNode(later);
+        graph.addNode(earlier);
+
+        List<WorkflowNode> order = new WorkflowEngine().topologicalSort(graph);
+        assertEquals(List.of(earlier.id(), later.id()), order.stream().map(WorkflowNode::id).toList());
+    }
+
+    @Test
+    void wiresWinOverRunOrder() {
+        WorkflowGraph graph = new WorkflowGraph();
+        WorkflowNode first = NodeType.COMMAND.create();
+        first.setRunOrder(2);
+        WorkflowNode second = NodeType.COMMAND.create();
+        second.setRunOrder(1);
+        graph.addNode(first);
+        graph.addNode(second);
+        graph.addConnection(new Connection(first.id(), "out", second.id(), "in"));
+
+        List<WorkflowNode> order = new WorkflowEngine().topologicalSort(graph);
+        assertEquals(List.of(first.id(), second.id()), order.stream().map(WorkflowNode::id).toList());
+    }
+
+    @Test
+    void moveInRunOrderChangesUnconnectedSequence() {
+        WorkflowGraph graph = new WorkflowGraph();
+        WorkflowNode first = NodeType.COMMAND.create();
+        WorkflowNode second = NodeType.COMMAND.create();
+        graph.addNode(first);
+        graph.addNode(second);
+        graph.moveInRunOrder(first, 1);
+
+        List<WorkflowNode> order = new WorkflowEngine().topologicalSort(graph);
+        assertEquals(List.of(second.id(), first.id()), order.stream().map(WorkflowNode::id).toList());
+    }
+
+    @Test
+    void disabledNodeIsSkipped() {
+        WorkflowGraph graph = new WorkflowGraph();
+        WorkflowNode skip = NodeType.COMMAND.create();
+        skip.setProperty("command", "exit 1");
+        skip.setEnabled(false);
+        graph.addNode(skip);
+        new WorkflowEngine().execute(graph, null);
+    }
+
+    @Test
+    void disabledNodePassesStdoutThrough() {
+        WorkflowGraph graph = new WorkflowGraph();
+        WorkflowNode first = NodeType.COMMAND.create();
+        first.setProperty("command", "echo hello-from-first");
+        WorkflowNode skipped = NodeType.COMMAND.create();
+        skipped.setProperty("command", "exit 1");
+        skipped.setEnabled(false);
+        WorkflowNode third = NodeType.COMMAND.create();
+        third.setProperty("command", "echo got-{in}");
+        graph.addNode(first);
+        graph.addNode(skipped);
+        graph.addNode(third);
+        graph.addConnection(new Connection(first.id(), "out", skipped.id(), "in"));
+        graph.addConnection(new Connection(skipped.id(), "out", third.id(), "in"));
+        new WorkflowEngine().execute(graph, null);
+    }
+
+    @Test
     void chainedCommandsPassStdoutInConnectionOrder() {
         WorkflowGraph graph = new WorkflowGraph();
         WorkflowNode first = NodeType.COMMAND.create();

@@ -54,7 +54,7 @@ public final class CommandLine {
     public static Result run(String command, NodeContext context) throws IOException, InterruptedException {
         String expanded = expand(command, context);
         if (expanded.isBlank()) {
-            throw new IOException("Command is empty — double-click the node and write a command");
+            throw new IOException("Node is empty — double-click and write a line");
         }
         AppLog.info("$ " + expanded);
 

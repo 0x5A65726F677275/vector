@@ -1,7 +1,9 @@
 package com.artofvector.workflow.canvas;
 
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -17,6 +19,9 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.RoundRectangle2D;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -53,6 +58,7 @@ public final class WorkflowCanvas extends JPanel {
     private Point2D.Double dragPortWorld;
 
     private WorkflowNode selected;
+    private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
 
     public WorkflowCanvas(WorkflowGraph graph) {
         this.graph = graph;
@@ -72,23 +78,31 @@ public final class WorkflowCanvas extends JPanel {
                     return;
                 }
                 WorkflowNode hit = graph.hitNode(world.getX(), world.getY());
+                if (hit != null && SwingUtilities.isLeftMouseButton(e)
+                        && hit.hitEnabledToggle(world.getX(), world.getY())) {
+                    hit.toggleEnabled();
+                    select(hit);
+                    notifyChanged();
+                    repaint();
+                    return;
+                }
                 if (hit != null) {
                     Port port = hit.hitPort(world.getX(), world.getY(), PORT_R + 4);
                     if (port != null && port.isOutput() && SwingUtilities.isLeftMouseButton(e)) {
                         dragPort = port;
                         dragPortNode = hit;
                         dragPortWorld = new Point2D.Double(world.getX(), world.getY());
-                        selected = hit;
+                        select(hit);
                         return;
                     }
                     if (SwingUtilities.isLeftMouseButton(e)) {
                         draggingNode = hit;
-                        selected = hit;
+                        select(hit);
                         graph.nodes().remove(hit);
                         graph.nodes().add(hit);
                     }
                 } else {
-                    selected = null;
+                    select(null);
                 }
                 if (e.getClickCount() == 2 && hit != null) {
                     editProperties(hit);
@@ -106,10 +120,12 @@ public final class WorkflowCanvas extends JPanel {
                         if (in != null && in.isInput()) {
                             graph.addConnection(new Connection(
                                     dragPortNode.id(), dragPort.id(), target.id(), in.id()));
+                            notifyChanged();
                         } else if (target.inputs().size() == 1) {
                             graph.addConnection(new Connection(
                                     dragPortNode.id(), dragPort.id(),
                                     target.id(), target.inputs().get(0).id()));
+                            notifyChanged();
                         }
                     }
                 }
@@ -162,6 +178,7 @@ public final class WorkflowCanvas extends JPanel {
                 if (selected != null) {
                     graph.removeNode(selected);
                     selected = null;
+                    notifyChanged();
                     repaint();
                 }
             }
@@ -172,11 +189,41 @@ public final class WorkflowCanvas extends JPanel {
         return graph;
     }
 
+    public WorkflowNode selected() {
+        return selected;
+    }
+
+    public void addChangeListener(Runnable listener) {
+        changeListeners.add(listener);
+    }
+
+    public void select(WorkflowNode node) {
+        select(node, true);
+    }
+
+    public void select(WorkflowNode node, boolean notify) {
+        if (this.selected == node) {
+            return;
+        }
+        this.selected = node;
+        repaint();
+        if (notify) {
+            notifyChanged();
+        }
+    }
+
+    public void notifyChanged() {
+        for (Runnable listener : changeListeners) {
+            listener.run();
+        }
+    }
+
     public void dropNode(WorkflowNode node, Point screen) {
         Point2D world = screenToWorld(screen);
         node.setPosition(world.getX() - (WorkflowNode.WIDTH / 2.0), world.getY() - (WorkflowNode.HEIGHT / 2.0));
         graph.addNode(node);
         selected = node;
+        notifyChanged();
         repaint();
     }
 
@@ -261,6 +308,11 @@ public final class WorkflowCanvas extends JPanel {
         RoundRectangle2D body = new RoundRectangle2D.Double(node.x(), node.y(),
                 WorkflowNode.WIDTH, WorkflowNode.HEIGHT, 14, 14);
 
+        Composite previous = g2.getComposite();
+        if (!node.enabled()) {
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.45f));
+        }
+
         g2.setColor(new Color(0, 0, 0, 50));
         g2.fill(new RoundRectangle2D.Double(node.x() + 2, node.y() + 3,
                 WorkflowNode.WIDTH, WorkflowNode.HEIGHT, 14, 14));
@@ -276,28 +328,28 @@ public final class WorkflowCanvas extends JPanel {
 
         int iconBox = 28;
         int iconX = (int) node.x() + 16;
-        int iconY = (int) node.y() + (WorkflowNode.HEIGHT - iconBox) / 2;
+        int iconY = (int) node.y() + 16;
         g2.setColor(new Color(node.accent().getRed(), node.accent().getGreen(), node.accent().getBlue(), 36));
         g2.fill(new RoundRectangle2D.Double(iconX, iconY, iconBox, iconBox, 8, 8));
         UiIcons.of(UiIcons.forNodeType(node.type()), 18, node.accent())
                 .paintIcon(this, g2, iconX + 5, iconY + 5);
 
         float textX = iconX + iconBox + 10;
+        int badgePad = 22;
+        int textMax = (int) (node.x() + WorkflowNode.WIDTH - 14 - textX - badgePad);
+        java.awt.Shape previousClip = g2.getClip();
+        g2.clip(new RoundRectangle2D.Double(node.x() + 8, node.y() + 4,
+                WorkflowNode.WIDTH - 16 - badgePad, WorkflowNode.HEIGHT - 30, 10, 10));
+
         g2.setFont(UiTheme.UI_FONT_BOLD);
         g2.setColor(UiTheme.TEXT);
-        g2.drawString(node.title(), textX, (float) node.y() + 32);
+        g2.drawString(ellipsize(g2, node.title(), textMax), textX, (float) node.y() + 32);
         g2.setFont(UiTheme.UI_FONT);
         g2.setColor(UiTheme.TEXT_MUTED);
-        String subtitle = node.property("command", "");
-        if (subtitle.isBlank()) {
-            subtitle = node.properties().isEmpty()
-                    ? node.type().toLowerCase().replace('_', ' ')
-                    : node.properties().values().stream().findFirst().orElse(node.type());
-        }
-        if (subtitle.length() > 28) {
-            subtitle = subtitle.substring(0, 27) + "…";
-        }
-        g2.drawString(subtitle, textX, (float) node.y() + 52);
+        g2.drawString(ellipsize(g2, subtitleOf(node), textMax), textX, (float) node.y() + 52);
+        g2.setClip(previousClip);
+
+        paintOrderBadge(g2, node);
 
         for (Port port : node.inputs()) {
             paintPort(g2, node.inputPortX(), node.portY(port), true);
@@ -305,6 +357,47 @@ public final class WorkflowCanvas extends JPanel {
         for (Port port : node.outputs()) {
             paintPort(g2, node.outputPortX(), node.portY(port), false);
         }
+
+        g2.setComposite(previous);
+        paintEnabledToggle(g2, node);
+    }
+
+    private void paintOrderBadge(Graphics2D g2, WorkflowNode node) {
+        String label = String.valueOf(Math.max(1, node.runOrder()));
+        int size = 20;
+        int bx = (int) node.x() + WorkflowNode.WIDTH - size - 8;
+        int by = (int) node.y() + 8;
+        g2.setColor(selected == node ? node.accent() : UiTheme.BG_HOVER);
+        g2.fill(new Ellipse2D.Double(bx, by, size, size));
+        g2.setColor(selected == node ? UiTheme.BG_ROOT : UiTheme.TEXT_MUTED);
+        g2.setStroke(new BasicStroke(1f));
+        g2.draw(new Ellipse2D.Double(bx, by, size, size));
+        g2.setFont(UiTheme.UI_FONT_BOLD.deriveFont(10.5f));
+        java.awt.FontMetrics metrics = g2.getFontMetrics();
+        int tx = bx + (size - metrics.stringWidth(label)) / 2;
+        int ty = by + (size - metrics.getHeight()) / 2 + metrics.getAscent();
+        g2.setColor(selected == node ? UiTheme.BG_ROOT : UiTheme.TEXT);
+        g2.drawString(label, tx, ty);
+    }
+
+    private void paintEnabledToggle(Graphics2D g2, WorkflowNode node) {
+        double tx = node.enabledToggleX();
+        double ty = node.enabledToggleY();
+        RoundRectangle2D pill = new RoundRectangle2D.Double(
+                tx, ty, WorkflowNode.TOGGLE_WIDTH, WorkflowNode.TOGGLE_HEIGHT, 9, 9);
+        boolean on = node.enabled();
+        g2.setColor(on ? UiTheme.SUCCESS : UiTheme.BG_HOVER);
+        g2.fill(pill);
+        g2.setColor(on ? UiTheme.SUCCESS : UiTheme.BORDER);
+        g2.setStroke(new BasicStroke(1f));
+        g2.draw(pill);
+        String label = on ? "On" : "Off";
+        g2.setFont(UiTheme.UI_FONT_BOLD.deriveFont(10.5f));
+        g2.setColor(on ? Color.WHITE : UiTheme.TEXT_MUTED);
+        java.awt.FontMetrics metrics = g2.getFontMetrics();
+        float lx = (float) (tx + (WorkflowNode.TOGGLE_WIDTH - metrics.stringWidth(label)) / 2.0);
+        float ly = (float) (ty + (WorkflowNode.TOGGLE_HEIGHT - metrics.getHeight()) / 2.0 + metrics.getAscent());
+        g2.drawString(label, lx, ly);
     }
 
     private void paintPort(Graphics2D g2, double x, double y, boolean input) {
@@ -316,6 +409,45 @@ public final class WorkflowCanvas extends JPanel {
         g2.draw(dot);
     }
 
+    private static String subtitleOf(WorkflowNode node) {
+        String subtitle = node.property("command", "");
+        if (subtitle.isBlank()) {
+            subtitle = node.properties().isEmpty()
+                    ? ("COMMAND".equals(node.type()) ? "node" : node.type().toLowerCase().replace('_', ' '))
+                    : node.properties().values().stream().findFirst().orElse(node.type());
+        }
+        return subtitle.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').strip();
+    }
+
+    private static String ellipsize(Graphics2D g2, String text, int maxWidth) {
+        if (text == null || text.isBlank()) {
+            return "";
+        }
+        if (maxWidth <= 0) {
+            return "…";
+        }
+        java.awt.FontMetrics metrics = g2.getFontMetrics();
+        if (metrics.stringWidth(text) <= maxWidth) {
+            return text;
+        }
+        String ellipsis = "…";
+        int budget = maxWidth - metrics.stringWidth(ellipsis);
+        if (budget <= 0) {
+            return ellipsis;
+        }
+        int low = 0;
+        int high = text.length();
+        while (low < high) {
+            int mid = (low + high + 1) / 2;
+            if (metrics.stringWidth(text.substring(0, mid)) <= budget) {
+                low = mid;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return text.substring(0, low) + ellipsis;
+    }
+
     private Point2D screenToWorld(Point screen) {
         return new Point2D.Double((screen.x - translateX) / scale, (screen.y - translateY) / scale);
     }
@@ -325,6 +457,7 @@ public final class WorkflowCanvas extends JPanel {
             java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
             java.awt.Frame frame = window instanceof java.awt.Frame f ? f : null;
             com.artofvector.workflow.ui.NodeCommandDialog.edit(frame, node);
+            notifyChanged();
             repaint();
             return;
         }
@@ -332,6 +465,7 @@ public final class WorkflowCanvas extends JPanel {
             String title = JOptionPane.showInputDialog(this, "Node title", node.title());
             if (title != null && !title.isBlank()) {
                 node.setTitle(title);
+                notifyChanged();
             }
             return;
         }
@@ -348,6 +482,7 @@ public final class WorkflowCanvas extends JPanel {
                 }
             });
         }
+        notifyChanged();
         repaint();
     }
 }

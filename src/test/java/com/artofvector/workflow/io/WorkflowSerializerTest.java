@@ -1,6 +1,7 @@
 package com.artofvector.workflow.io;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,8 @@ class WorkflowSerializerTest {
         second.setProperty("command", "echo {in}");
         graph.addNode(first);
         graph.addNode(second);
+        first.setRunOrder(2);
+        second.setRunOrder(1);
         graph.addConnection(new Connection(first.id(), "out", second.id(), "in"));
 
         WorkflowSerializer serializer = new WorkflowSerializer();
@@ -35,6 +38,19 @@ class WorkflowSerializerTest {
         assertEquals("echo hello", restored.find(first.id()).orElseThrow().property("command", ""));
         assertEquals(first.id(), restored.connections().get(0).fromNodeId());
         assertEquals(second.id(), restored.connections().get(0).toNodeId());
+        assertEquals(2, restored.find(first.id()).orElseThrow().runOrder());
+        assertEquals(1, restored.find(second.id()).orElseThrow().runOrder());
+        assertTrue(restored.find(first.id()).orElseThrow().enabled());
+    }
+
+    @Test
+    void roundTripPreservesDisabledNode() throws Exception {
+        WorkflowGraph graph = new WorkflowGraph();
+        WorkflowNode node = NodeType.COMMAND.create();
+        node.setEnabled(false);
+        graph.addNode(node);
+        WorkflowGraph restored = new WorkflowSerializer().fromJson(new WorkflowSerializer().toJson(graph));
+        assertFalse(restored.nodes().get(0).enabled());
     }
 
     @Test
@@ -53,5 +69,7 @@ class WorkflowSerializerTest {
         WorkflowNode node = graph.nodes().get(0);
         assertEquals("COMMAND", node.type());
         assertEquals("nmap -sn 127.0.0.1", node.property("command", ""));
+        assertEquals(1, node.runOrder());
+        assertTrue(node.enabled());
     }
 }

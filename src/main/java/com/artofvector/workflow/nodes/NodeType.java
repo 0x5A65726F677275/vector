@@ -6,7 +6,7 @@ import java.util.function.Function;
 import com.artofvector.workflow.model.WorkflowNode;
 
 public enum NodeType {
-    COMMAND("Command", new Color(0x58A6FF), RunCommandNode::new);
+    COMMAND("Node", new Color(0x58A6FF), RunCommandNode::new);
 
     private final String title;
     private final Color accent;

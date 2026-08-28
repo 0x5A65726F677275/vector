@@ -20,7 +20,7 @@ Art of Vector (package `com.artofvector`) is a three-pane workbench:
 | --- | --- |
 | **Editor** | Syntax-highlighted code editor (Java, C/C++, Python, ASM, JSON) with file tree, tabs, and save |
 | **Debugger** | Attach to a PID, continue / pause / step, INT3 breakpoints, Capstone or fallback disassembly, hex + ASCII memory, registers, stack |
-| **Workflow** | Drag **Command** nodes, write a shell line, chain stdout with `{in}`, run from the workspace folder |
+| **Workflow** | Drag **Node**, write a shell line, chain stdout with `{in}`, run from the workspace folder |
 
 On **Linux**, the debugger uses `PTRACE_ATTACH`, `PEEKTEXT` / `POKETEXT`, `GETREGS` / `SETREGS`, single-step, and continue. On other operating systems it falls back to a **simulated debug session** so you can still explore the UI.
 
@@ -55,8 +55,9 @@ Search-friendly topics this project covers: Java ptrace debugger, Linux process 
 - Optional **libcapstone** for full disassembly; otherwise a simple fallback decoder
 
 ### Workflow canvas
-- One node type: **Command**
-- Double-click a node to write the command (`nmap -sn 127.0.0.1`, `pwd`, `ls`, …)
+- One node type: **Node**
+- Double-click a node to write the shell line (`nmap -sn 127.0.0.1`, `pwd`, `ls`, …)
+- Toggle **On / Off** on a node to skip it at run time without deleting it
 - Pipe previous stdout with `{in}`, `{out}`, or `{stdout}`
 - Commands run in the **Open Folder** working directory
 - Save / load graphs as JSON
@@ -150,7 +151,7 @@ cd vector
 gradlew.bat run
 ```
 
-On Windows and macOS the debugger uses the **simulated session**. The editor, file tree, and Command workflow still work. Real process attach is **Linux-only**.
+On Windows and macOS the debugger uses the **simulated session**. The editor, file tree, and Node workflow still work. Real process attach is **Linux-only**.
 
 ---
 
@@ -159,7 +160,7 @@ On Windows and macOS the debugger uses the **simulated session**. The editor, fi
 1. **File → Open Folder…** (`Ctrl+K`) or the **Open Folder** button — this is the workspace and the cwd for workflow commands.
 2. Open a file from the tree (double-click) or **File → Open File…**.
 3. Debugger: **Attach**. Empty / `0` = simulated target. A real PID = `ptrace` on Linux.
-4. Workflow: drag **Command**, double-click, type e.g. `nmap -sn 127.0.0.1`, click **Run**.
+4. Workflow: drag **Node**, double-click, type e.g. `nmap -sn 127.0.0.1`, click **Run**. Off nodes are skipped.
 5. Chain nodes: connect output → input and use `{in}` in the next command.
 
 ### ptrace attach on Linux (Yama)
@@ -187,7 +188,7 @@ src/main/java/com/artofvector/
   ArtOfVectorApp.java          # entry point
   editor/                      # code editor, file tree
   debugger/                    # ptrace + simulated session, disasm, UI
-  workflow/                    # Command nodes, canvas, engine
+  workflow/                    # Node canvas, engine
   ui/                          # main window, theme, icons
   workspace/                   # folder + font preferences
 ```
@@ -218,7 +219,7 @@ Yes. Install a current OpenJDK (`openjdk-21-jdk` or `openjdk-25-jdk`), then `./g
 You can run the app and the simulated debugger. Live `ptrace` attach is Linux-only.
 
 **How do I run nmap from the GUI?**  
-Open a folder, add a **Command** node, set the command to your nmap line, Run. The process cwd is that folder.
+Open a folder, add a **Node**, set the shell line to your nmap command, Run. The process cwd is that folder.
 
 **Unsupported class file major version 69?**  
 You are on **Java 25** with an old Gradle. This repository already uses Gradle **9.1.0**. Pull the latest wrapper, run `./gradlew --stop`, then `./gradlew run`.
@@ -236,7 +237,7 @@ This is a local workbench for **your own** binaries and processes. Do not attach
 
 ## 한국어 요약
 
-**Art of Vector**는 자바 스윙 데스크톱 앱입니다. 코드 에디터, 리눅스 **ptrace 디버거**(디스어셈블, 레지스터, 헥스, 브레이크포인트), 셸 명령을 연결하는 **Command 워크플로**를 한 창에서 씁니다.
+**Art of Vector**는 자바 스윙 데스크톱 앱입니다. 코드 에디터, 리눅스 **ptrace 디버거**(디스어셈블, 레지스터, 헥스, 브레이크포인트), 셸 명령을 연결하는 **Node 워크플로**를 한 창에서 씁니다.
 
 ```bash
 git clone https://github.com/YOUR_USER/vector.git
@@ -249,5 +250,5 @@ sudo apt install openjdk-21-jdk    # Kali에는 openjdk-17-jdk가 없을 수 있
 - 폴더 열기: 파일 트리 + 명령 작업 디렉터리
 - 글자 크기: View 메뉴 / `Ctrl` `+` `-` `0` / Ctrl+휠
 - 실제 PID attach는 Linux만. Windows는 시뮬레이터
-- 워크플로 노드는 **Command** 하나. `nmap` 등은 명령으로 입력
+- 워크플로 노드는 **Node** 하나. Off면 실행만 건너뜀. `nmap` 등은 노드에 입력
 - Java 25면 Gradle 9.1.0 필요 (이 저장소에 포함)

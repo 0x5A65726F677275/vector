@@ -51,13 +51,20 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
         toolbar.add(UiControls.toolButton("Load", UiIcons.Glyph.LOAD, this::load));
         toolbar.add(UiControls.toolButton("Clear", UiIcons.Glyph.CLEAR, this::clear));
         toolbar.add(UiControls.toolButton("Reset View", UiIcons.Glyph.RESET, canvas::resetView));
-        javax.swing.JLabel hint = new javax.swing.JLabel("  Drag Command → double-click to write the command → Run");
+        javax.swing.JLabel hint = new javax.swing.JLabel("  Drag Node → On/Off → set Run order → double-click to edit → Run");
         hint.setForeground(UiTheme.TEXT_MUTED);
         hint.setFont(UiTheme.UI_FONT);
         toolbar.add(hint);
 
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new NodePalette(), canvas);
-        split.setDividerLocation(200);
+        NodePalette palette = new NodePalette();
+        palette.setPreferredSize(new java.awt.Dimension(200, 140));
+        JSplitPane leftSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, palette, new ExecutionOrderPanel(graph, canvas));
+        leftSplit.setDividerLocation(140);
+        leftSplit.setResizeWeight(0.28);
+        leftSplit.setBorder(null);
+
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftSplit, canvas);
+        split.setDividerLocation(210);
         split.setBorder(null);
 
         add(toolbar, BorderLayout.NORTH);
@@ -117,6 +124,8 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
                 graph.clear();
                 loaded.nodes().forEach(graph::addNode);
                 loaded.connections().forEach(graph::addConnection);
+                canvas.select(null);
+                canvas.notifyChanged();
                 canvas.repaint();
                 AppLog.info("Workflow loaded from " + chooser.getSelectedFile());
             } catch (Exception e) {
@@ -127,6 +136,8 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
 
     private void clear() {
         graph.clear();
+        canvas.select(null);
+        canvas.notifyChanged();
         canvas.repaint();
     }
 

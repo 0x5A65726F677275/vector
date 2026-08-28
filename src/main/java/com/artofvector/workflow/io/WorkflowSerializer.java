@@ -47,6 +47,8 @@ public final class WorkflowSerializer {
             nd.id = node.id();
             nd.type = node.type();
             nd.title = node.title();
+            nd.order = node.runOrder();
+            nd.enabled = node.enabled();
             nd.x = node.x();
             nd.y = node.y();
             nd.properties = node.properties();
@@ -77,6 +79,10 @@ public final class WorkflowSerializer {
                 if (nd.id != null && !nd.id.isBlank()) {
                     node.restoreId(nd.id);
                 }
+                if (nd.order > 0) {
+                    node.setRunOrder(nd.order);
+                }
+                node.setEnabled(nd.enabled);
                 graph.addNode(node);
             }
         }
@@ -99,6 +105,8 @@ public final class WorkflowSerializer {
         public String id;
         public String type;
         public String title;
+        public int order;
+        public boolean enabled = true;
         public double x;
         public double y;
         public Map<String, String> properties;

@@ -4,35 +4,80 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Frame;
+import java.awt.GridLayout;
 
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.JToggleButton;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EmptyBorder;
 
 import com.artofvector.ui.theme.UiTheme;
 import com.artofvector.workflow.model.WorkflowNode;
 
 /**
- * Double-click editor for a node's command (or other properties).
+ * Double-click editor for a node's name, run order, On/Off, and shell line.
  */
 public final class NodeCommandDialog extends JDialog {
 
     private boolean accepted;
 
     private NodeCommandDialog(Frame owner, WorkflowNode node) {
-        super(owner, node.title(), true);
+        super(owner, "Edit node", true);
         setBackground(UiTheme.BG_PANEL);
         getContentPane().setBackground(UiTheme.BG_PANEL);
 
-        JLabel hint = new JLabel("<html>Write the command to run. Connected order is respected. "
-                + "Use <b>{in}</b> for the previous node's stdout.</html>");
-        hint.setForeground(UiTheme.TEXT_MUTED);
+        JLabel nameLabel = new JLabel("Name");
+        nameLabel.setForeground(UiTheme.TEXT_MUTED);
+        nameLabel.setFont(UiTheme.UI_FONT);
+        JTextField nameField = new JTextField(node.title());
+        nameField.setFont(UiTheme.UI_FONT);
+        nameField.setBackground(UiTheme.BG_INPUT);
+        nameField.setForeground(UiTheme.TEXT);
+        nameField.setCaretColor(UiTheme.TEXT);
+        nameField.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(UiTheme.BORDER),
+                new EmptyBorder(6, 8, 6, 8)));
+        nameField.setCaretPosition(Math.min(node.title().length(), nameField.getText().length()));
+
+        JLabel orderLabel = new JLabel("Run order");
+        orderLabel.setForeground(UiTheme.TEXT_MUTED);
+        orderLabel.setFont(UiTheme.UI_FONT);
+        int currentOrder = Math.max(1, node.runOrder());
+        JSpinner orderSpinner = new JSpinner(new SpinnerNumberModel(currentOrder, 1, 999, 1));
+        orderSpinner.setFont(UiTheme.UI_FONT);
+        orderSpinner.setPreferredSize(new Dimension(72, 28));
+        JComponent editor = orderSpinner.getEditor();
+        if (editor instanceof JSpinner.DefaultEditor defaultEditor) {
+            defaultEditor.getTextField().setBackground(UiTheme.BG_INPUT);
+            defaultEditor.getTextField().setForeground(UiTheme.TEXT);
+            defaultEditor.getTextField().setCaretColor(UiTheme.TEXT);
+            defaultEditor.getTextField().setFont(UiTheme.UI_FONT);
+        }
+
+        JToggleButton enabledToggle = new JToggleButton(node.enabled() ? "On" : "Off");
+        enabledToggle.setSelected(node.enabled());
+        enabledToggle.setFont(UiTheme.UI_FONT_BOLD);
+        enabledToggle.setFocusPainted(false);
+        enabledToggle.setBackground(node.enabled() ? UiTheme.SUCCESS : UiTheme.BG_HOVER);
+        enabledToggle.setForeground(node.enabled() ? java.awt.Color.WHITE : UiTheme.TEXT_MUTED);
+        enabledToggle.addActionListener(e -> {
+            boolean on = enabledToggle.isSelected();
+            enabledToggle.setText(on ? "On" : "Off");
+            enabledToggle.setBackground(on ? UiTheme.SUCCESS : UiTheme.BG_HOVER);
+            enabledToggle.setForeground(on ? java.awt.Color.WHITE : UiTheme.TEXT_MUTED);
+        });
+
+        JLabel hint = new JLabel("<html>Use <b>{in}</b> for the previous node's stdout. Long lines stay clipped on the canvas.</html>");
+        hint.setForeground(UiTheme.TEXT_DIM);
         hint.setFont(UiTheme.UI_FONT);
-        hint.setBorder(new EmptyBorder(0, 0, 8, 0));
 
         JTextArea area = new JTextArea(propertyValue(node), 6, 48);
         area.setFont(UiTheme.MONO_FONT);
@@ -49,6 +94,12 @@ public final class NodeCommandDialog extends JDialog {
         ok.setFont(UiTheme.UI_FONT);
         cancel.setFont(UiTheme.UI_FONT);
         ok.addActionListener(e -> {
+            String name = nameField.getText().trim();
+            if (!name.isBlank()) {
+                node.setTitle(name);
+            }
+            node.setRunOrder(((Number) orderSpinner.getValue()).intValue());
+            node.setEnabled(enabledToggle.isSelected());
             String key = node.properties().containsKey("command") ? "command" : firstKey(node);
             if (key != null) {
                 node.setProperty(key, area.getText());
@@ -63,15 +114,56 @@ public final class NodeCommandDialog extends JDialog {
         buttons.add(cancel);
         buttons.add(ok);
 
+        JPanel nameBlock = new JPanel(new BorderLayout(0, 4));
+        nameBlock.setOpaque(false);
+        nameBlock.add(nameLabel, BorderLayout.NORTH);
+        nameBlock.add(nameField, BorderLayout.CENTER);
+
+        JPanel orderBlock = new JPanel(new BorderLayout(0, 4));
+        orderBlock.setOpaque(false);
+        orderBlock.add(orderLabel, BorderLayout.NORTH);
+        orderBlock.add(orderSpinner, BorderLayout.CENTER);
+
+        JLabel enabledLabel = new JLabel("Enabled");
+        enabledLabel.setForeground(UiTheme.TEXT_MUTED);
+        enabledLabel.setFont(UiTheme.UI_FONT);
+        JPanel enabledBlock = new JPanel(new BorderLayout(0, 4));
+        enabledBlock.setOpaque(false);
+        enabledBlock.add(enabledLabel, BorderLayout.NORTH);
+        enabledBlock.add(enabledToggle, BorderLayout.CENTER);
+
+        JPanel side = new JPanel(new GridLayout(1, 2, 8, 0));
+        side.setOpaque(false);
+        side.add(orderBlock);
+        side.add(enabledBlock);
+
+        JPanel top = new JPanel(new BorderLayout(12, 0));
+        top.setOpaque(false);
+        top.add(nameBlock, BorderLayout.CENTER);
+        top.add(side, BorderLayout.EAST);
+
+        JPanel commandHead = new JPanel(new BorderLayout());
+        commandHead.setOpaque(false);
+        commandHead.add(hint, BorderLayout.CENTER);
+
+        JPanel commandBlock = new JPanel(new BorderLayout(0, 4));
+        commandBlock.setOpaque(false);
+        commandBlock.add(commandHead, BorderLayout.NORTH);
+        commandBlock.add(scroll, BorderLayout.CENTER);
+
+        JPanel fields = new JPanel(new BorderLayout(0, 12));
+        fields.setOpaque(false);
+        fields.add(top, BorderLayout.NORTH);
+        fields.add(commandBlock, BorderLayout.CENTER);
+
         JPanel body = new JPanel(new BorderLayout());
         body.setBackground(UiTheme.BG_PANEL);
         body.setBorder(new EmptyBorder(12, 14, 12, 14));
-        body.add(hint, BorderLayout.NORTH);
-        body.add(scroll, BorderLayout.CENTER);
+        body.add(fields, BorderLayout.CENTER);
         body.add(buttons, BorderLayout.SOUTH);
 
         setContentPane(body);
-        setPreferredSize(new Dimension(560, 280));
+        setPreferredSize(new Dimension(560, 340));
         pack();
         setLocationRelativeTo(owner);
         getRootPane().setDefaultButton(ok);

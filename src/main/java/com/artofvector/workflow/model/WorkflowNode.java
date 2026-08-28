@@ -13,11 +13,15 @@ import java.util.UUID;
 public abstract class WorkflowNode {
 
     public static final int WIDTH = 260;
-    public static final int HEIGHT = 80;
+    public static final int HEIGHT = 96;
+    public static final int TOGGLE_WIDTH = 46;
+    public static final int TOGGLE_HEIGHT = 18;
 
     private String id;
     private final String type;
     private String title;
+    private int runOrder;
+    private boolean enabled = true;
     private double x;
     private double y;
     private final List<Port> inputs = new ArrayList<>();
@@ -60,6 +64,41 @@ public abstract class WorkflowNode {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public int runOrder() {
+        return runOrder;
+    }
+
+    public void setRunOrder(int runOrder) {
+        this.runOrder = Math.max(0, runOrder);
+    }
+
+    public boolean enabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public void toggleEnabled() {
+        this.enabled = !this.enabled;
+    }
+
+    public double enabledToggleX() {
+        return x + WIDTH - TOGGLE_WIDTH - 8;
+    }
+
+    public double enabledToggleY() {
+        return y + HEIGHT - TOGGLE_HEIGHT - 8;
+    }
+
+    public boolean hitEnabledToggle(double worldX, double worldY) {
+        double tx = enabledToggleX();
+        double ty = enabledToggleY();
+        return worldX >= tx && worldX <= tx + TOGGLE_WIDTH
+                && worldY >= ty && worldY <= ty + TOGGLE_HEIGHT;
     }
 
     public double x() {
