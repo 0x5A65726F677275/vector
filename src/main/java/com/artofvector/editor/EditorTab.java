@@ -1,5 +1,7 @@
 package com.artofvector.editor;
 
+import java.awt.event.InputEvent;
+import java.awt.event.MouseWheelEvent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -11,7 +13,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rsyntaxtextarea.Style;
+import org.fife.ui.rsyntaxtextarea.SyntaxScheme;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.Gutter;
 import org.fife.ui.rtextarea.RTextScrollPane;
@@ -62,6 +65,8 @@ public final class EditorTab {
         scroll.getGutter().setBorderColor(UiTheme.BORDER);
         scroll.getGutter().setFoldBackground(UiTheme.BG_PANEL);
         scroll.setBorder(null);
+        textArea.addMouseWheelListener(this::onMouseWheel);
+        applyFont();
 
         textArea.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -197,5 +202,36 @@ public final class EditorTab {
         } catch (Exception e) {
             AppLog.debug("RSyntaxTextArea dark theme not applied: " + e.getMessage());
         }
+    }
+
+    public void applyFont() {
+        java.awt.Font font = UiTheme.MONO_FONT;
+        SyntaxScheme scheme = textArea.getSyntaxScheme();
+        if (scheme != null) {
+            for (int i = 0; i < scheme.getStyleCount(); i++) {
+                Style style = scheme.getStyle(i);
+                if (style != null) {
+                    int existing = style.font == null ? java.awt.Font.PLAIN : style.font.getStyle();
+                    style.font = font.deriveFont(existing);
+                }
+            }
+            textArea.setSyntaxScheme(scheme);
+        }
+        textArea.setFont(font);
+        if (scroll != null) {
+            scroll.getGutter().setLineNumberFont(UiTheme.MONO_SMALL);
+        }
+    }
+
+    private void onMouseWheel(MouseWheelEvent event) {
+        if ((event.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0) {
+            return;
+        }
+        if (event.getWheelRotation() < 0) {
+            UiTheme.increaseFontSize();
+        } else {
+            UiTheme.decreaseFontSize();
+        }
+        event.consume();
     }
 }

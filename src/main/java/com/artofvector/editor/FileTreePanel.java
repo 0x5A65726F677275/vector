@@ -6,16 +6,19 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeSelectionEvent;
-import javax.swing.filechooser.FileSystemView;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
+import com.artofvector.ui.theme.UiControls;
+import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
 
 /**
@@ -25,12 +28,23 @@ public final class FileTreePanel extends JPanel {
 
     private final JTree tree;
     private final DefaultTreeModel model;
+    private final JLabel folderLabel = new JLabel("No folder open");
     private Consumer<Path> openHandler = path -> {
+    };
+    private Runnable folderChooser = () -> {
     };
 
     public FileTreePanel() {
         super(new BorderLayout());
         setBackground(UiTheme.BG_PANEL);
+
+        JPanel toolbar = UiControls.toolbar();
+        toolbar.add(UiControls.toolButton("Open Folder", UiIcons.Glyph.OPEN_FOLDER, () -> folderChooser.run()));
+        folderLabel.setForeground(UiTheme.TEXT_MUTED);
+        folderLabel.setFont(UiTheme.UI_FONT);
+        folderLabel.setIcon(UiIcons.of(UiIcons.Glyph.FOLDER, 14));
+        folderLabel.setBorder(new EmptyBorder(0, 8, 0, 4));
+        toolbar.add(folderLabel);
 
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("No folder open");
         model = new DefaultTreeModel(root);
@@ -40,6 +54,7 @@ public final class FileTreePanel extends JPanel {
         tree.setBackground(UiTheme.BG_PANEL);
         tree.setForeground(UiTheme.TEXT);
         tree.setFont(UiTheme.UI_FONT);
+        tree.setRowHeight(Math.max(22, UiTheme.UI_FONT.getSize() + 8));
         tree.setCellRenderer(new FileRenderer());
 
         tree.addTreeSelectionListener(this::onSelect);
@@ -58,6 +73,7 @@ public final class FileTreePanel extends JPanel {
         JScrollPane scroll = new JScrollPane(tree);
         scroll.setBorder(null);
         scroll.getViewport().setBackground(UiTheme.BG_PANEL);
+        add(toolbar, BorderLayout.NORTH);
         add(scroll, BorderLayout.CENTER);
     }
 
@@ -65,11 +81,21 @@ public final class FileTreePanel extends JPanel {
         this.openHandler = openHandler;
     }
 
+    public void setFolderChooser(Runnable folderChooser) {
+        this.folderChooser = folderChooser;
+    }
+
     public void setRoot(Path folder) {
         if (folder == null) {
+            folderLabel.setText("No folder open");
+            folderLabel.setIcon(UiIcons.of(UiIcons.Glyph.FOLDER, 14, UiTheme.TEXT_DIM));
+            folderLabel.setToolTipText(null);
             model.setRoot(new DefaultMutableTreeNode("No folder open"));
             return;
         }
+        folderLabel.setText(folder.getFileName() == null ? folder.toString() : folder.getFileName().toString());
+        folderLabel.setIcon(UiIcons.of(UiIcons.Glyph.FOLDER, 14));
+        folderLabel.setToolTipText(folder.toAbsolutePath().toString());
         FileNode root = new FileNode(folder.toFile());
         loadChildren(root);
         model.setRoot(root);
@@ -134,8 +160,6 @@ public final class FileTreePanel extends JPanel {
     }
 
     private static final class FileRenderer extends DefaultTreeCellRenderer {
-        private final FileSystemView view = FileSystemView.getFileSystemView();
-
         @Override
         public Component getTreeCellRendererComponent(
                 JTree tree, Object value, boolean selected, boolean expanded,
@@ -146,9 +170,16 @@ public final class FileTreePanel extends JPanel {
             setBackgroundSelectionColor(UiTheme.BG_SELECTED);
             setTextNonSelectionColor(UiTheme.TEXT);
             setTextSelectionColor(UiTheme.TEXT);
+            setBorderSelectionColor(UiTheme.BG_SELECTED);
+            setFont(tree.getFont());
             if (value instanceof FileNode fileNode) {
-                setIcon(view.getSystemIcon(fileNode.file));
+                setIcon(UiIcons.forFile(fileNode.file));
+                setClosedIcon(getIcon());
+                setOpenIcon(getIcon());
+                setLeafIcon(getIcon());
                 setText(fileNode.file.getName());
+            } else {
+                setIcon(UiIcons.of(UiIcons.Glyph.FOLDER, 16, UiTheme.TEXT_DIM));
             }
             return this;
         }

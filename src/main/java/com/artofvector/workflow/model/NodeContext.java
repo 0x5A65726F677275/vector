@@ -1,5 +1,6 @@
 package com.artofvector.workflow.model;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,15 +10,25 @@ import com.artofvector.log.AppLog;
 public final class NodeContext {
 
     private final DebugService debugService;
+    private final Path workingDirectory;
     private final Map<String, Object> inputs = new HashMap<>();
     private final Map<String, Object> extras = new HashMap<>();
 
     public NodeContext(DebugService debugService) {
+        this(debugService, null);
+    }
+
+    public NodeContext(DebugService debugService, Path workingDirectory) {
         this.debugService = debugService;
+        this.workingDirectory = workingDirectory;
     }
 
     public DebugService debug() {
         return debugService;
+    }
+
+    public Path workingDirectory() {
+        return workingDirectory;
     }
 
     public void putInput(String key, Object value) {

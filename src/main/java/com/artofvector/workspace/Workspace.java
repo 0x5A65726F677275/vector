@@ -1,8 +1,13 @@
 package com.artofvector.workspace;
 
+import java.awt.Component;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.swing.JFileChooser;
+
+import com.artofvector.log.AppLog;
 
 /**
  * Cross-module file-open bus. The file tree lives in the main window; the editor listens here.
@@ -37,9 +42,29 @@ public final class Workspace {
 
     public void setRootFolder(Path folder) {
         this.rootFolder = folder;
+        if (folder != null) {
+            AppSettings.setLastFolder(folder);
+        }
         for (FolderListener listener : folderListeners) {
             listener.onFolderChanged(folder);
         }
+    }
+
+    public boolean chooseRootFolder(Component parent) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Open Folder");
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        chooser.setAcceptAllFileFilterUsed(true);
+        if (rootFolder != null) {
+            chooser.setCurrentDirectory(rootFolder.toFile());
+        }
+        if (chooser.showOpenDialog(parent) != JFileChooser.APPROVE_OPTION) {
+            return false;
+        }
+        Path folder = chooser.getSelectedFile().toPath();
+        setRootFolder(folder);
+        AppLog.info("Workspace folder: " + folder);
+        return true;
     }
 
     public Path rootFolder() {

@@ -64,6 +64,9 @@ public final class CommandLine {
 
         ProcessBuilder builder = new ProcessBuilder(argv);
         builder.redirectErrorStream(false);
+        if (context != null && context.workingDirectory() != null) {
+            builder.directory(context.workingDirectory().toFile());
+        }
         Process process = builder.start();
 
         StreamCollector stdout = new StreamCollector(process.getInputStream(), false);

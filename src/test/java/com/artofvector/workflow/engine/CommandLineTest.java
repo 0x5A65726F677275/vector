@@ -3,6 +3,9 @@ package com.artofvector.workflow.engine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
 
 import com.artofvector.workflow.model.NodeContext;
@@ -35,5 +38,16 @@ class CommandLineTest {
         NodeContext context = new NodeContext(null);
         context.putInput("in", "127.0.0.1");
         assertEquals("nmap -sn 127.0.0.1", CommandLine.expand("nmap -sn {in}", context));
+    }
+
+    @Test
+    void commandRunsInWorkingDirectory() throws Exception {
+        Path dir = Files.createTempDirectory("aov-cwd");
+        NodeContext context = new NodeContext(null, dir);
+        WorkflowNode write = NodeType.COMMAND.create();
+        write.setProperty("command", "echo cwd-ok > aov-marker.txt");
+        NodeResult result = write.execute(context);
+        assertTrue(result.success(), result.message());
+        assertTrue(Files.exists(dir.resolve("aov-marker.txt")));
     }
 }

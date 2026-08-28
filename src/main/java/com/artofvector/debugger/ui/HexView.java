@@ -18,6 +18,8 @@ import com.artofvector.debugger.engine.DebugEvent;
 import com.artofvector.debugger.engine.DebugEventListener;
 import com.artofvector.debugger.engine.DebugSession;
 import com.artofvector.log.AppLog;
+import com.artofvector.ui.theme.UiControls;
+import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
 
 /**
@@ -38,12 +40,11 @@ public final class HexView extends JPanel implements DebugEventListener {
 
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         bar.setBackground(UiTheme.BG_ELEVATED);
-        JLabel label = new JLabel("Address");
+        JLabel label = new JLabel("Address", UiIcons.of(UiIcons.Glyph.HEX, 14), JLabel.LEFT);
+        label.setIconTextGap(8);
         label.setForeground(UiTheme.TEXT_MUTED);
         label.setFont(UiTheme.UI_FONT);
-        JButton go = new JButton("Dump");
-        go.setFont(UiTheme.UI_FONT);
-        go.addActionListener(e -> dumpFromField());
+        JButton go = UiControls.toolButton("Dump", UiIcons.Glyph.DUMP, this::dumpFromField);
         bar.add(label);
         bar.add(addressField);
         bar.add(go);
@@ -100,8 +101,13 @@ public final class HexView extends JPanel implements DebugEventListener {
 
         @Override
         public java.awt.Dimension getPreferredSize() {
+            FontMetrics fm = getFontMetrics(UiTheme.MONO_SMALL);
+            int charW = Math.max(8, fm.charWidth('0'));
             int rows = Math.max(1, (data.length + 15) / 16);
-            return new java.awt.Dimension(720, 8 + rows * 18);
+            int width = 8 + fm.stringWidth("0000000000000000") + charW * 2
+                    + charW * 3 * 16 + charW * 2 + charW * 16 + 24;
+            int rowH = fm.getHeight() + 4;
+            return new java.awt.Dimension(width, 8 + rows * rowH);
         }
 
         @Override
@@ -111,30 +117,33 @@ public final class HexView extends JPanel implements DebugEventListener {
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2.setFont(UiTheme.MONO_SMALL);
             FontMetrics fm = g2.getFontMetrics();
+            int charW = Math.max(8, fm.charWidth('0'));
             int y = fm.getAscent() + 4;
             int rowH = fm.getHeight() + 4;
+            int addrW = fm.stringWidth("0000000000000000");
+            int hexStart = 8 + addrW + charW * 2;
+            int asciiStart = hexStart + charW * 3 * 16 + charW * 2;
             for (int i = 0; i < data.length; i += 16) {
                 g2.setColor(UiTheme.TEXT_DIM);
                 g2.drawString(String.format("%016x", baseAddress + i), 8, y);
 
-                int hexX = 150;
+                int hexX = hexStart;
                 for (int b = 0; b < 16 && i + b < data.length; b++) {
                     if (b == 8) {
-                        hexX += 8;
+                        hexX += charW;
                     }
                     g2.setColor(UiTheme.TEXT);
                     g2.drawString(String.format("%02x", data[i + b] & 0xff), hexX, y);
-                    hexX += 22;
+                    hexX += charW * 3;
                 }
 
-                int asciiX = 520;
                 StringBuilder ascii = new StringBuilder();
                 for (int b = 0; b < 16 && i + b < data.length; b++) {
                     int v = data[i + b] & 0xff;
                     ascii.append(v >= 32 && v < 127 ? (char) v : '.');
                 }
                 g2.setColor(UiTheme.ACCENT_DIM);
-                g2.drawString(ascii.toString(), asciiX, y);
+                g2.drawString(ascii.toString(), asciiStart, y);
                 y += rowH;
             }
             g2.dispose();

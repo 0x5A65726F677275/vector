@@ -1,12 +1,10 @@
 package com.artofvector.workflow.ui;
 
 import java.awt.BorderLayout;
-import java.awt.FlowLayout;
 import java.awt.Point;
 import java.awt.datatransfer.DataFlavor;
 import java.io.File;
 
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -19,6 +17,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import com.artofvector.debugger.DebugService;
 import com.artofvector.log.AppLog;
 import com.artofvector.ui.WorkbenchModule;
+import com.artofvector.ui.theme.UiControls;
+import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
 import com.artofvector.workflow.canvas.WorkflowCanvas;
 import com.artofvector.workflow.engine.WorkflowEngine;
@@ -26,30 +26,32 @@ import com.artofvector.workflow.io.WorkflowSerializer;
 import com.artofvector.workflow.model.WorkflowGraph;
 import com.artofvector.workflow.nodes.NodeType;
 import com.artofvector.workflow.palette.NodePalette;
+import com.artofvector.workspace.Workspace;
 
 public final class WorkflowPanel extends JPanel implements WorkbenchModule {
 
     private final DebugService debugService;
+    private final Workspace workspace;
     private final WorkflowGraph graph = new WorkflowGraph();
     private final WorkflowCanvas canvas = new WorkflowCanvas(graph);
     private final WorkflowEngine engine = new WorkflowEngine();
     private final WorkflowSerializer serializer = new WorkflowSerializer();
 
-    public WorkflowPanel(DebugService debugService) {
+    public WorkflowPanel(DebugService debugService, Workspace workspace) {
         super(new BorderLayout());
         this.debugService = debugService;
+        this.workspace = workspace;
         setBackground(UiTheme.BG_PANEL);
 
         canvas.setTransferHandler(new DropHandler());
 
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
-        toolbar.setBackground(UiTheme.BG_ELEVATED);
-        toolbar.add(button("Run", this::run));
-        toolbar.add(button("Save", this::save));
-        toolbar.add(button("Load", this::load));
-        toolbar.add(button("Clear", this::clear));
-        toolbar.add(button("Reset View", canvas::resetView));
-        javax.swing.JLabel hint = new javax.swing.JLabel("  Drag Nmap/Command → double-click to write the command → Run");
+        JPanel toolbar = UiControls.toolbar();
+        toolbar.add(UiControls.primaryButton("Run", UiIcons.Glyph.PLAY, this::run));
+        toolbar.add(UiControls.toolButton("Save", UiIcons.Glyph.SAVE, this::save));
+        toolbar.add(UiControls.toolButton("Load", UiIcons.Glyph.LOAD, this::load));
+        toolbar.add(UiControls.toolButton("Clear", UiIcons.Glyph.CLEAR, this::clear));
+        toolbar.add(UiControls.toolButton("Reset View", UiIcons.Glyph.RESET, canvas::resetView));
+        javax.swing.JLabel hint = new javax.swing.JLabel("  Drag Command → double-click to write the command → Run");
         hint.setForeground(UiTheme.TEXT_MUTED);
         hint.setFont(UiTheme.UI_FONT);
         toolbar.add(hint);
@@ -68,6 +70,11 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
     }
 
     @Override
+    public javax.swing.Icon tabIcon() {
+        return UiIcons.of(UiIcons.Glyph.WORKFLOW, 16);
+    }
+
+    @Override
     public JPanel component() {
         return this;
     }
@@ -75,7 +82,7 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
     private void run() {
         Thread worker = new Thread(() -> {
             try {
-                engine.execute(graph, debugService);
+                engine.execute(graph, debugService, workspace.rootFolder());
             } catch (Exception e) {
                 AppLog.error("Workflow failed", e);
                 SwingUtilities.invokeLater(() ->
@@ -123,19 +130,12 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
         canvas.repaint();
     }
 
-    private JButton button(String text, Runnable action) {
-        JButton button = new JButton(text);
-        button.setFont(UiTheme.UI_FONT);
-        button.setBackground(UiTheme.BG_HOVER);
-        button.setForeground(UiTheme.TEXT);
-        button.setFocusPainted(false);
-        button.addActionListener(e -> action.run());
-        return button;
-    }
-
     private JFileChooser chooser() {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileFilter(new FileNameExtensionFilter("Workflow JSON", "json"));
+        if (workspace.rootFolder() != null) {
+            chooser.setCurrentDirectory(workspace.rootFolder().toFile());
+        }
         return chooser;
     }
 

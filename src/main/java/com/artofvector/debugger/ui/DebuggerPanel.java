@@ -8,6 +8,7 @@ import javax.swing.JTabbedPane;
 
 import com.artofvector.debugger.DebugService;
 import com.artofvector.ui.WorkbenchModule;
+import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
 
 public final class DebuggerPanel extends JPanel implements WorkbenchModule {
@@ -26,8 +27,8 @@ public final class DebuggerPanel extends JPanel implements WorkbenchModule {
 
         JTabbedPane bottom = new JTabbedPane();
         bottom.setFont(UiTheme.UI_FONT);
-        bottom.addTab("Hex", hexView);
-        bottom.addTab("Stack", stack);
+        bottom.addTab("Hex", UiIcons.of(UiIcons.Glyph.HEX, 14), hexView);
+        bottom.addTab("Stack", UiIcons.of(UiIcons.Glyph.STACK, 14), stack);
 
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, disassembly, bottom);
         split.setResizeWeight(0.62);
@@ -44,6 +45,11 @@ public final class DebuggerPanel extends JPanel implements WorkbenchModule {
     @Override
     public String tabTitle() {
         return "Debugger";
+    }
+
+    @Override
+    public javax.swing.Icon tabIcon() {
+        return UiIcons.of(UiIcons.Glyph.DEBUGGER, 16);
     }
 
     @Override

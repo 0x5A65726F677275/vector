@@ -1,47 +1,30 @@
 package com.artofvector.debugger.ui;
 
-import java.awt.FlowLayout;
-
-import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import com.artofvector.debugger.engine.DebugException;
 import com.artofvector.debugger.engine.DebugSession;
 import com.artofvector.log.AppLog;
-import com.artofvector.ui.theme.UiTheme;
+import com.artofvector.ui.theme.UiControls;
+import com.artofvector.ui.theme.UiIcons;
 
 public final class DebuggerControlBar extends JPanel {
 
     private final DebugSession session;
 
     public DebuggerControlBar(DebugSession session) {
-        super(new FlowLayout(FlowLayout.LEFT, 8, 6));
         this.session = session;
-        setBackground(UiTheme.BG_ELEVATED);
-
-        add(button("Attach", this::attach));
-        add(button("Run", this::run));
-        add(button("Pause", this::pause));
-        add(button("Step Into", this::stepInto));
-        add(button("Step Over", this::stepOver));
-        add(button("Stop", this::stop));
-    }
-
-    private JButton button(String text, Runnable action) {
-        JButton button = new JButton(text);
-        button.setFont(UiTheme.UI_FONT);
-        button.setBackground(UiTheme.BG_HOVER);
-        button.setForeground(UiTheme.TEXT);
-        button.setFocusPainted(false);
-        button.addActionListener(e -> {
-            try {
-                action.run();
-            } catch (RuntimeException ex) {
-                AppLog.error(text + " failed", ex);
-            }
-        });
-        return button;
+        JPanel bar = UiControls.toolbar();
+        setLayout(new java.awt.BorderLayout());
+        setBackground(bar.getBackground());
+        bar.add(UiControls.toolButton("Attach", UiIcons.Glyph.ATTACH, this::attach));
+        bar.add(UiControls.primaryButton("Run", UiIcons.Glyph.PLAY, this::run));
+        bar.add(UiControls.toolButton("Pause", UiIcons.Glyph.PAUSE, this::pause));
+        bar.add(UiControls.toolButton("Step Into", UiIcons.Glyph.STEP_INTO, this::stepInto));
+        bar.add(UiControls.toolButton("Step Over", UiIcons.Glyph.STEP_OVER, this::stepOver));
+        bar.add(UiControls.dangerButton("Stop", UiIcons.Glyph.STOP, this::stop));
+        add(bar, java.awt.BorderLayout.CENTER);
     }
 
     private void attach() {
@@ -94,6 +77,8 @@ public final class DebuggerControlBar extends JPanel {
             action.run();
         } catch (DebugException e) {
             AppLog.error(label + " failed", e);
+        } catch (RuntimeException ex) {
+            AppLog.error(label + " failed", ex);
         }
     }
 

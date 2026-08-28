@@ -6,16 +6,20 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Insets;
 
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import com.artofvector.log.AppLog;
+import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
 
 /**
@@ -33,13 +37,23 @@ public final class ConsolePanel extends JPanel implements AppLog.Listener {
     public ConsolePanel() {
         super(new BorderLayout());
         setBackground(UiTheme.BG_INPUT);
-        setBorder(UiTheme.panelBorder());
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, UiTheme.BORDER),
+                BorderFactory.createEmptyBorder()));
+
+        JLabel header = new JLabel("Console", UiIcons.of(UiIcons.Glyph.CONSOLE, 14), JLabel.LEFT);
+        header.setIconTextGap(8);
+        header.setForeground(UiTheme.TEXT_MUTED);
+        header.setFont(UiTheme.UI_FONT_BOLD);
+        header.setBorder(new EmptyBorder(6, 12, 6, 12));
+        header.setOpaque(true);
+        header.setBackground(UiTheme.BG_ELEVATED);
 
         text.setEditable(false);
         text.setBackground(UiTheme.BG_INPUT);
         text.setForeground(UiTheme.TEXT);
         text.setCaretColor(UiTheme.TEXT);
-        text.setFont(UiTheme.MONO_SMALL);
+        text.setFont(UiTheme.MONO_FONT);
         text.setMargin(new Insets(8, 10, 8, 10));
 
         document = text.getStyledDocument();
@@ -51,6 +65,7 @@ public final class ConsolePanel extends JPanel implements AppLog.Listener {
         JScrollPane scroll = new JScrollPane(text);
         scroll.setBorder(null);
         scroll.getViewport().setBackground(UiTheme.BG_INPUT);
+        add(header, BorderLayout.NORTH);
         add(scroll, BorderLayout.CENTER);
 
         AppLog.addListener(this);
@@ -88,8 +103,17 @@ public final class ConsolePanel extends JPanel implements AppLog.Listener {
         Style style = text.addStyle(name, null);
         StyleConstants.setForeground(style, color);
         StyleConstants.setFontFamily(style, UiTheme.MONO_FONT.getFamily());
-        StyleConstants.setFontSize(style, 12);
+        StyleConstants.setFontSize(style, UiTheme.fontSize());
         return style;
+    }
+
+    public void applyFont() {
+        text.setFont(UiTheme.MONO_FONT);
+        for (Style style : new Style[]{infoStyle, warnStyle, errorStyle, debugStyle}) {
+            StyleConstants.setFontFamily(style, UiTheme.MONO_FONT.getFamily());
+            StyleConstants.setFontSize(style, UiTheme.fontSize());
+        }
+        text.repaint();
     }
 
     @Override

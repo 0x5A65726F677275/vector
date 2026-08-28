@@ -23,6 +23,7 @@ import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
+import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
 import com.artofvector.workflow.model.Connection;
 import com.artofvector.workflow.model.Port;
@@ -248,6 +249,9 @@ public final class WorkflowCanvas extends JPanel {
         Path2D path = new Path2D.Double();
         path.moveTo(x1, y1);
         path.curveTo(x1 + dx, y1, x2 - dx, y2, x2, y2);
+        g2.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 40));
+        g2.draw(path);
         g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g2.setColor(color);
         g2.draw(path);
@@ -255,31 +259,45 @@ public final class WorkflowCanvas extends JPanel {
 
     private void paintNode(Graphics2D g2, WorkflowNode node, boolean selected) {
         RoundRectangle2D body = new RoundRectangle2D.Double(node.x(), node.y(),
-                WorkflowNode.WIDTH, WorkflowNode.HEIGHT, 12, 12);
+                WorkflowNode.WIDTH, WorkflowNode.HEIGHT, 14, 14);
+
+        g2.setColor(new Color(0, 0, 0, 50));
+        g2.fill(new RoundRectangle2D.Double(node.x() + 2, node.y() + 3,
+                WorkflowNode.WIDTH, WorkflowNode.HEIGHT, 14, 14));
+
         g2.setColor(UiTheme.BG_ELEVATED);
         g2.fill(body);
-        g2.setColor(selected ? UiTheme.ACCENT : UiTheme.BORDER);
+        g2.setColor(selected ? node.accent() : UiTheme.BORDER);
         g2.setStroke(new BasicStroke(selected ? 2f : 1f));
         g2.draw(body);
 
         g2.setColor(node.accent());
-        g2.fillRoundRect((int) node.x(), (int) node.y(), 6, WorkflowNode.HEIGHT, 8, 8);
+        g2.fillRoundRect((int) node.x(), (int) node.y(), 5, WorkflowNode.HEIGHT, 8, 8);
 
+        int iconBox = 28;
+        int iconX = (int) node.x() + 16;
+        int iconY = (int) node.y() + (WorkflowNode.HEIGHT - iconBox) / 2;
+        g2.setColor(new Color(node.accent().getRed(), node.accent().getGreen(), node.accent().getBlue(), 36));
+        g2.fill(new RoundRectangle2D.Double(iconX, iconY, iconBox, iconBox, 8, 8));
+        UiIcons.of(UiIcons.forNodeType(node.type()), 18, node.accent())
+                .paintIcon(this, g2, iconX + 5, iconY + 5);
+
+        float textX = iconX + iconBox + 10;
         g2.setFont(UiTheme.UI_FONT_BOLD);
         g2.setColor(UiTheme.TEXT);
-        g2.drawString(node.title(), (float) node.x() + 16, (float) node.y() + 28);
+        g2.drawString(node.title(), textX, (float) node.y() + 32);
         g2.setFont(UiTheme.UI_FONT);
         g2.setColor(UiTheme.TEXT_MUTED);
         String subtitle = node.property("command", "");
         if (subtitle.isBlank()) {
             subtitle = node.properties().isEmpty()
-                    ? node.type()
+                    ? node.type().toLowerCase().replace('_', ' ')
                     : node.properties().values().stream().findFirst().orElse(node.type());
         }
-        if (subtitle.length() > 34) {
-            subtitle = subtitle.substring(0, 33) + "…";
+        if (subtitle.length() > 28) {
+            subtitle = subtitle.substring(0, 27) + "…";
         }
-        g2.drawString(subtitle, (float) node.x() + 16, (float) node.y() + 50);
+        g2.drawString(subtitle, textX, (float) node.y() + 52);
 
         for (Port port : node.inputs()) {
             paintPort(g2, node.inputPortX(), node.portY(port), true);

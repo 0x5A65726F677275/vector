@@ -1,5 +1,6 @@
 package com.artofvector.workflow.engine;
 
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,11 +59,18 @@ public final class WorkflowEngine {
     }
 
     public void execute(WorkflowGraph graph, DebugService debugService) {
+        execute(graph, debugService, null);
+    }
+
+    public void execute(WorkflowGraph graph, DebugService debugService, Path workingDirectory) {
         List<WorkflowNode> order = topologicalSort(graph);
         Map<String, Map<String, Object>> outputs = new HashMap<>();
         AppLog.info("Running workflow (" + order.size() + " nodes)...");
+        if (workingDirectory != null) {
+            AppLog.info("Working folder: " + workingDirectory);
+        }
         for (WorkflowNode node : order) {
-            NodeContext context = new NodeContext(debugService);
+            NodeContext context = new NodeContext(debugService, workingDirectory);
             for (Connection connection : graph.connections()) {
                 if (!connection.toNodeId().equals(node.id())) {
                     continue;

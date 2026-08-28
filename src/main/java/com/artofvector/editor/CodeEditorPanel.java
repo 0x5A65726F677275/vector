@@ -1,7 +1,6 @@
 package com.artofvector.editor;
 
 import java.awt.BorderLayout;
-import java.awt.FlowLayout;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -9,7 +8,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -20,6 +18,8 @@ import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 
 import com.artofvector.log.AppLog;
 import com.artofvector.ui.WorkbenchModule;
+import com.artofvector.ui.theme.UiControls;
+import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
 import com.artofvector.workspace.Workspace;
 
@@ -35,12 +35,12 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
         this.workspace = workspace;
         setBackground(UiTheme.BG_PANEL);
 
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        toolbar.setBackground(UiTheme.BG_ELEVATED);
-        toolbar.add(button("Open", this::openFileDialog));
-        toolbar.add(button("Save", this::saveCurrent));
-        toolbar.add(button("Save As", this::saveCurrentAs));
-        toolbar.add(button("New", this::newUntitled));
+        JPanel toolbar = UiControls.toolbar();
+        toolbar.add(UiControls.toolButton("Open", UiIcons.Glyph.OPEN, this::openFileDialog));
+        toolbar.add(UiControls.toolButton("Open Folder", UiIcons.Glyph.OPEN_FOLDER, () -> workspace.chooseRootFolder(this)));
+        toolbar.add(UiControls.toolButton("Save", UiIcons.Glyph.SAVE, this::saveCurrent));
+        toolbar.add(UiControls.toolButton("Save As", UiIcons.Glyph.SAVE, this::saveCurrentAs));
+        toolbar.add(UiControls.toolButton("New", UiIcons.Glyph.NEW_FILE, this::newUntitled));
 
         tabs.setBackground(UiTheme.BG_PANEL);
         tabs.setForeground(UiTheme.TEXT);
@@ -75,6 +75,13 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
         return tab == null ? Optional.empty() : Optional.of(tab.textArea());
     }
 
+    public void applyFonts() {
+        tabs.setFont(UiTheme.UI_FONT);
+        for (EditorTab tab : tabMap.values()) {
+            tab.applyFont();
+        }
+    }
+
     public void openFile(Path path) {
         for (int i = 0; i < tabs.getTabCount(); i++) {
             JPanel wrapper = (JPanel) tabs.getComponentAt(i);
@@ -103,6 +110,11 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
     @Override
     public String tabTitle() {
         return "Editor";
+    }
+
+    @Override
+    public javax.swing.Icon tabIcon() {
+        return UiIcons.of(UiIcons.Glyph.EDITOR, 16);
     }
 
     @Override
@@ -208,16 +220,6 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
             tabs.remove(0);
         }
         return true;
-    }
-
-    private JButton button(String text, Runnable action) {
-        JButton button = new JButton(text);
-        button.setFont(UiTheme.UI_FONT);
-        button.setBackground(UiTheme.BG_HOVER);
-        button.setForeground(UiTheme.TEXT);
-        button.setFocusPainted(false);
-        button.addActionListener(e -> action.run());
-        return button;
     }
 
     private JFileChooser chooser() {

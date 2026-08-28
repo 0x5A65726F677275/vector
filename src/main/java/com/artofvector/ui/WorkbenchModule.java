@@ -11,6 +11,10 @@ public interface WorkbenchModule {
 
     JComponent component();
 
+    default javax.swing.Icon tabIcon() {
+        return null;
+    }
+
     default void onActivated() {
         // Optional hook when the tab becomes visible.
     }

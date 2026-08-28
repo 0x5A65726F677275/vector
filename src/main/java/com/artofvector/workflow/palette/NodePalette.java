@@ -1,7 +1,6 @@
 package com.artofvector.workflow.palette;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.datatransfer.DataFlavor;
@@ -19,6 +18,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.TransferHandler;
 import javax.swing.border.EmptyBorder;
 
+import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
 import com.artofvector.workflow.nodes.NodeType;
 
@@ -31,10 +31,11 @@ public final class NodePalette extends JPanel {
         setBackground(UiTheme.BG_PANEL);
         setPreferredSize(new Dimension(200, 400));
 
-        JLabel title = new JLabel("Nodes");
+        JLabel title = new JLabel("Nodes", UiIcons.of(UiIcons.Glyph.WORKFLOW, 14), JLabel.LEFT);
+        title.setIconTextGap(8);
         title.setForeground(UiTheme.TEXT_MUTED);
         title.setFont(UiTheme.UI_FONT_BOLD);
-        title.setBorder(new EmptyBorder(8, 12, 6, 12));
+        title.setBorder(new EmptyBorder(10, 12, 8, 12));
 
         DefaultListModel<NodeType> model = new DefaultListModel<>();
         for (NodeType type : NodeType.values()) {
@@ -44,6 +45,7 @@ public final class NodePalette extends JPanel {
         list.setBackground(UiTheme.BG_PANEL);
         list.setForeground(UiTheme.TEXT);
         list.setFont(UiTheme.UI_FONT);
+        list.setFixedCellHeight(36);
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setCellRenderer(new Renderer());
         list.setDragEnabled(true);
@@ -74,7 +76,9 @@ public final class NodePalette extends JPanel {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof NodeType type) {
                 label.setText(type.title());
-                label.setBorder(new EmptyBorder(8, 12, 8, 12));
+                label.setIcon(UiIcons.of(UiIcons.forNodeType(type.name()), 18, type.accent()));
+                label.setIconTextGap(10);
+                label.setBorder(new EmptyBorder(6, 12, 6, 12));
                 label.setForeground(UiTheme.TEXT);
                 if (isSelected) {
                     label.setBackground(UiTheme.BG_SELECTED);
@@ -82,33 +86,8 @@ public final class NodePalette extends JPanel {
                     label.setBackground(UiTheme.BG_PANEL);
                 }
                 label.setOpaque(true);
-                label.setIcon(new ColorDot(type.accent()));
             }
             return label;
-        }
-    }
-
-    private static final class ColorDot implements javax.swing.Icon {
-        private final Color color;
-
-        private ColorDot(Color color) {
-            this.color = color;
-        }
-
-        @Override
-        public void paintIcon(Component c, java.awt.Graphics g, int x, int y) {
-            g.setColor(color);
-            g.fillOval(x, y + 2, 10, 10);
-        }
-
-        @Override
-        public int getIconWidth() {
-            return 16;
-        }
-
-        @Override
-        public int getIconHeight() {
-            return 14;
         }
     }
 }

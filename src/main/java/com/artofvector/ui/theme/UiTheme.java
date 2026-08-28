@@ -1,12 +1,29 @@
 package com.artofvector.ui.theme;
 
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.JTextPane;
+import javax.swing.JTree;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
+import javax.swing.table.JTableHeader;
 
 /**
  * Dark workbench palette shared by Swing chrome and custom Java2D views.
@@ -39,12 +56,67 @@ public final class UiTheme {
     public static final Color BREAKPOINT = DANGER;
     public static final Color RIP_HIGHLIGHT = new Color(0x1A3F4A);
 
-    public static final Font UI_FONT = new Font(pickUiFamily(), Font.PLAIN, 13);
-    public static final Font UI_FONT_BOLD = UI_FONT.deriveFont(Font.BOLD);
-    public static final Font MONO_FONT = new Font(pickMonoFamily(), Font.PLAIN, 13);
-    public static final Font MONO_SMALL = MONO_FONT.deriveFont(12f);
+    public static final int FONT_SIZE_DEFAULT = 13;
+    public static final int FONT_SIZE_MIN = 10;
+    public static final int FONT_SIZE_MAX = 28;
+
+    public static Font UI_FONT = new Font(pickUiFamily(), Font.PLAIN, FONT_SIZE_DEFAULT);
+    public static Font UI_FONT_BOLD = UI_FONT.deriveFont(Font.BOLD);
+    public static Font MONO_FONT = new Font(pickMonoFamily(), Font.PLAIN, FONT_SIZE_DEFAULT);
+    public static Font MONO_SMALL = MONO_FONT.deriveFont((float) (FONT_SIZE_DEFAULT - 1));
+
+    private static int fontSize = FONT_SIZE_DEFAULT;
+    private static final List<Runnable> FONT_LISTENERS = new CopyOnWriteArrayList<>();
 
     private UiTheme() {
+    }
+
+    public static int fontSize() {
+        return fontSize;
+    }
+
+    public static void increaseFontSize() {
+        setFontSize(fontSize + 1);
+    }
+
+    public static void decreaseFontSize() {
+        setFontSize(fontSize - 1);
+    }
+
+    public static void resetFontSize() {
+        setFontSize(FONT_SIZE_DEFAULT);
+    }
+
+    public static void addFontListener(Runnable listener) {
+        FONT_LISTENERS.add(listener);
+    }
+
+    public static void setFontSize(int size) {
+        int clamped = Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, size));
+        if (clamped == fontSize && UI_FONT.getSize() == clamped) {
+            return;
+        }
+        fontSize = clamped;
+        rebuildFonts();
+        applyFontsToUiManager();
+        for (Runnable listener : FONT_LISTENERS) {
+            listener.run();
+        }
+    }
+
+    public static void applyToTree(Component root) {
+        applyTo(root);
+        if (root instanceof Container container) {
+            for (Component child : container.getComponents()) {
+                applyToTree(child);
+            }
+        }
+        if (root instanceof JTable table) {
+            JTableHeader header = table.getTableHeader();
+            if (header != null) {
+                applyTo(header);
+            }
+        }
     }
 
     public static void install() {
@@ -116,6 +188,8 @@ public final class UiTheme {
         UIManager.put("Tree.hash", BORDER);
         UIManager.put("Tree.line", BORDER);
         UIManager.put("Tree.font", UI_FONT);
+        UIManager.put("Tree.rowHeight", 24);
+        UIManager.put("Button.border", BorderFactory.createEmptyBorder(6, 12, 6, 12));
 
         UIManager.put("TabbedPane.background", BG_ROOT);
         UIManager.put("TabbedPane.foreground", TEXT_MUTED);
@@ -156,6 +230,7 @@ public final class UiTheme {
 
         UIManager.put("Separator.foreground", BORDER);
         UIManager.put("Separator.background", BORDER);
+        applyFontsToUiManager();
     }
 
     public static Border panelBorder() {
@@ -164,6 +239,58 @@ public final class UiTheme {
 
     public static Border empty(int pad) {
         return BorderFactory.createEmptyBorder(pad, pad, pad, pad);
+    }
+
+    private static void rebuildFonts() {
+        UI_FONT = new Font(pickUiFamily(), Font.PLAIN, fontSize);
+        UI_FONT_BOLD = UI_FONT.deriveFont(Font.BOLD);
+        MONO_FONT = new Font(pickMonoFamily(), Font.PLAIN, fontSize);
+        MONO_SMALL = MONO_FONT.deriveFont((float) Math.max(FONT_SIZE_MIN, fontSize - 1));
+    }
+
+    private static void applyFontsToUiManager() {
+        UIManager.put("Label.font", UI_FONT);
+        UIManager.put("Button.font", UI_FONT);
+        UIManager.put("ToggleButton.font", UI_FONT);
+        UIManager.put("TextField.font", UI_FONT);
+        UIManager.put("TextArea.font", MONO_FONT);
+        UIManager.put("TextPane.font", MONO_FONT);
+        UIManager.put("ComboBox.font", UI_FONT);
+        UIManager.put("List.font", UI_FONT);
+        UIManager.put("Table.font", MONO_SMALL);
+        UIManager.put("TableHeader.font", UI_FONT);
+        UIManager.put("Tree.font", UI_FONT);
+        UIManager.put("TabbedPane.font", UI_FONT);
+        UIManager.put("MenuItem.font", UI_FONT);
+        UIManager.put("Menu.font", UI_FONT);
+        UIManager.put("MenuBar.font", UI_FONT);
+        UIManager.put("OptionPane.font", UI_FONT);
+        UIManager.put("OptionPane.messageFont", UI_FONT);
+        UIManager.put("ToolBar.font", UI_FONT);
+    }
+
+    private static void applyTo(Component component) {
+        if (component instanceof JTable table) {
+            table.setFont(MONO_SMALL);
+            table.setRowHeight(MONO_SMALL.getSize() + 8);
+            JTableHeader header = table.getTableHeader();
+            if (header != null) {
+                header.setFont(UI_FONT);
+            }
+            return;
+        }
+        if (component instanceof JTree || component instanceof JList<?>
+                || component instanceof JLabel || component instanceof AbstractButton
+                || component instanceof JTabbedPane || component instanceof JMenuBar
+                || component instanceof JMenu || component instanceof JMenuItem
+                || component instanceof JTextField) {
+            component.setFont(component instanceof JLabel && ((JLabel) component).getFont() != null
+                    && ((JLabel) component).getFont().isBold() ? UI_FONT_BOLD : UI_FONT);
+            return;
+        }
+        if (component instanceof JTextArea || component instanceof JTextPane) {
+            component.setFont(MONO_FONT);
+        }
     }
 
     private static String pickUiFamily() {

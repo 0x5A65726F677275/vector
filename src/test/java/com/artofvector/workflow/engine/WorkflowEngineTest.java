@@ -2,7 +2,6 @@ package com.artofvector.workflow.engine;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
@@ -18,24 +17,24 @@ class WorkflowEngineTest {
     @Test
     void topologicalSortOrdersDependencies() {
         WorkflowGraph graph = new WorkflowGraph();
-        WorkflowNode load = NodeType.LOAD_BINARY.create();
-        WorkflowNode bp = NodeType.SET_BREAKPOINT.create();
-        WorkflowNode dump = NodeType.DUMP_MEMORY.create();
-        graph.addNode(dump);
-        graph.addNode(bp);
-        graph.addNode(load);
-        graph.addConnection(new Connection(load.id(), "out", bp.id(), "in"));
-        graph.addConnection(new Connection(bp.id(), "out", dump.id(), "in"));
+        WorkflowNode first = NodeType.COMMAND.create();
+        WorkflowNode second = NodeType.COMMAND.create();
+        WorkflowNode third = NodeType.COMMAND.create();
+        graph.addNode(third);
+        graph.addNode(second);
+        graph.addNode(first);
+        graph.addConnection(new Connection(first.id(), "out", second.id(), "in"));
+        graph.addConnection(new Connection(second.id(), "out", third.id(), "in"));
 
         List<WorkflowNode> order = new WorkflowEngine().topologicalSort(graph);
-        assertEquals(List.of(load.id(), bp.id(), dump.id()), order.stream().map(WorkflowNode::id).toList());
+        assertEquals(List.of(first.id(), second.id(), third.id()), order.stream().map(WorkflowNode::id).toList());
     }
 
     @Test
     void topologicalSortRejectsCycles() {
         WorkflowGraph graph = new WorkflowGraph();
-        WorkflowNode a = NodeType.LOG_MESSAGE.create();
-        WorkflowNode b = NodeType.LOG_MESSAGE.create();
+        WorkflowNode a = NodeType.COMMAND.create();
+        WorkflowNode b = NodeType.COMMAND.create();
         graph.addNode(a);
         graph.addNode(b);
         graph.addConnection(new Connection(a.id(), "out", b.id(), "in"));
@@ -55,12 +54,5 @@ class WorkflowEngineTest {
         graph.addConnection(new Connection(first.id(), "out", second.id(), "in"));
 
         new WorkflowEngine().execute(graph, null);
-    }
-
-    @Test
-    void logNodeSucceeds() {
-        WorkflowNode node = NodeType.LOG_MESSAGE.create();
-        var result = node.execute(new com.artofvector.workflow.model.NodeContext(null));
-        assertTrue(result.success());
     }
 }

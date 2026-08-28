@@ -16,6 +16,7 @@ import com.artofvector.ui.MainWindow;
 import com.artofvector.ui.WorkbenchModule;
 import com.artofvector.ui.theme.UiTheme;
 import com.artofvector.workflow.ui.WorkflowPanel;
+import com.artofvector.workspace.AppSettings;
 import com.artofvector.workspace.Workspace;
 
 public final class ArtOfVectorApp {
@@ -27,6 +28,7 @@ public final class ArtOfVectorApp {
         System.setProperty("awt.useSystemAAFontSettings", "on");
         System.setProperty("swing.aatext", "true");
         UiTheme.install();
+        UiTheme.setFontSize(AppSettings.fontSize(UiTheme.FONT_SIZE_DEFAULT));
         SwingUtilities.invokeLater(ArtOfVectorApp::start);
     }
 
@@ -42,10 +44,11 @@ public final class ArtOfVectorApp {
             List<WorkbenchModule> modules = List.of(
                     editor,
                     new DebuggerPanel(debugService),
-                    new WorkflowPanel(debugService)
+                    new WorkflowPanel(debugService, workspace)
             );
 
-            Path home = Path.of(System.getProperty("user.dir"));
+            Path home = AppSettings.lastFolder()
+                    .orElseGet(() -> Path.of(System.getProperty("user.dir")));
             workspace.setRootFolder(home);
 
             MainWindow window = new MainWindow(workspace, debugService, modules, console, editor, fileTree);
