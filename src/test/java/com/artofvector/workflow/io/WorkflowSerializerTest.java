@@ -72,4 +72,12 @@ class WorkflowSerializerTest {
         assertEquals(1, node.runOrder());
         assertTrue(node.enabled());
     }
+
+    @Test
+    void roundTripPreservesIp() throws Exception {
+        WorkflowGraph graph = new WorkflowGraph();
+        graph.setIp("10.8.0.5");
+        WorkflowGraph restored = new WorkflowSerializer().fromJson(new WorkflowSerializer().toJson(graph));
+        assertEquals("10.8.0.5", restored.ip());
+    }
 }

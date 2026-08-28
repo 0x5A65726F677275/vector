@@ -34,7 +34,9 @@ public final class MainWindow {
     private final JFrame frame;
     private final CodeEditorPanel editor;
     private final ConsolePanel console;
+    private final TerminalPanel terminal;
     private final StatusBar statusBar = new StatusBar();
+    private final JTabbedPane bottomTabs = new JTabbedPane();
 
     public MainWindow(
             Workspace workspace,
@@ -46,6 +48,7 @@ public final class MainWindow {
     ) {
         this.editor = editor;
         this.console = console;
+        this.terminal = new TerminalPanel(workspace);
         frame = new JFrame(Version.NAME + " " + Version.NUMBER);
         frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         frame.setMinimumSize(new Dimension(1100, 720));
@@ -106,7 +109,18 @@ public final class MainWindow {
         leftCenter.setDividerLocation(240);
         leftCenter.setBorder(null);
 
-        JSplitPane vertical = new JSplitPane(JSplitPane.VERTICAL_SPLIT, leftCenter, console);
+        bottomTabs.setFont(UiTheme.UI_FONT);
+        bottomTabs.setBackground(UiTheme.BG_ROOT);
+        bottomTabs.setForeground(UiTheme.TEXT);
+        bottomTabs.addTab("Terminal", UiIcons.of(UiIcons.Glyph.CONSOLE, 14), terminal);
+        bottomTabs.addTab("Console", UiIcons.of(UiIcons.Glyph.LOG, 14), console);
+        bottomTabs.addChangeListener(e -> {
+            if (bottomTabs.getSelectedComponent() == terminal) {
+                terminal.focusInput();
+            }
+        });
+
+        JSplitPane vertical = new JSplitPane(JSplitPane.VERTICAL_SPLIT, leftCenter, bottomTabs);
         vertical.setResizeWeight(0.82);
         vertical.setBorder(null);
 
@@ -115,7 +129,7 @@ public final class MainWindow {
         root.add(vertical, BorderLayout.CENTER);
         root.add(statusBar, BorderLayout.SOUTH);
 
-        frame.setJMenuBar(new MainMenuBar(workspace, editor, console::clear, this::requestClose));
+        frame.setJMenuBar(new MainMenuBar(workspace, editor, console::clear, this::showTerminal, this::requestClose));
         frame.setContentPane(root);
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
@@ -130,6 +144,12 @@ public final class MainWindow {
 
         UiTheme.addFontListener(this::onFontChanged);
         bindFontKeys();
+        bindTerminalKey();
+    }
+
+    public void showTerminal() {
+        bottomTabs.setSelectedComponent(terminal);
+        terminal.focusInput();
     }
 
     public void show() {
@@ -140,6 +160,7 @@ public final class MainWindow {
 
     private void requestClose() {
         if (editor.closeAll()) {
+            terminal.shutdown();
             frame.dispose();
             System.exit(0);
         }
@@ -150,6 +171,7 @@ public final class MainWindow {
         UiTheme.applyToTree(frame);
         editor.applyFonts();
         console.applyFont();
+        terminal.applyFont();
         frame.revalidate();
         frame.repaint();
     }
@@ -197,6 +219,18 @@ public final class MainWindow {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 UiTheme.resetFontSize();
+            }
+        });
+    }
+
+    private void bindTerminalKey() {
+        JComponent root = frame.getRootPane();
+        root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_QUOTE, InputEvent.CTRL_DOWN_MASK), "show-terminal");
+        root.getActionMap().put("show-terminal", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                showTerminal();
             }
         });
     }

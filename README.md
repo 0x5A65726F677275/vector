@@ -20,7 +20,7 @@ Art of Vector (package `com.artofvector`) is a three-pane workbench:
 | --- | --- |
 | **Editor** | Syntax-highlighted code editor (Java, C/C++, Python, ASM, JSON) with file tree, tabs, and save |
 | **Debugger** | Attach to a PID, continue / pause / step, INT3 breakpoints, Capstone or fallback disassembly, hex + ASCII memory, registers, stack |
-| **Workflow** | Drag **Node**, write a shell line, chain stdout with `{in}`, run from the workspace folder |
+| **Workflow** | Drag **Node**, use `$ip` for the target, chain stdout with `{in}`, run from the workspace folder |
 
 On **Linux**, the debugger uses `PTRACE_ATTACH`, `PEEKTEXT` / `POKETEXT`, `GETREGS` / `SETREGS`, single-step, and continue. On other operating systems it falls back to a **simulated debug session** so you can still explore the UI.
 
@@ -48,6 +48,10 @@ Search-friendly topics this project covers: Java ptrace debugger, Linux process 
 - Font size: **View → Increase / Decrease / Reset**, `Ctrl` `+` / `-` / `0`, or **Ctrl + mouse wheel**
 - Last folder and font size are remembered
 
+### Terminal
+- Bottom **Terminal** tab runs a shell in the Open Folder directory (bash on Linux, cmd on Windows)
+- `Ctrl` `` ` `` focuses the terminal. Kill / Restart are on the header.
+
 ### Linux debugger
 - Attach by **PID**, or leave empty for the **simulated target**
 - Run, pause, step into, step over, stop
@@ -56,7 +60,8 @@ Search-friendly topics this project covers: Java ptrace debugger, Linux process 
 
 ### Workflow canvas
 - One node type: **Node**
-- Double-click a node to write the shell line (`nmap -sn 127.0.0.1`, `pwd`, `ls`, …)
+- Double-click a node to write the shell line (`nmap -sn $ip`, `pwd`, `ls`, …)
+- Toolbar **$ip** replaces `$ip` / `{ip}` in every node at once
 - Toggle **On / Off** on a node to skip it at run time without deleting it
 - Pipe previous stdout with `{in}`, `{out}`, or `{stdout}`
 - Commands run in the **Open Folder** working directory
@@ -160,7 +165,7 @@ On Windows and macOS the debugger uses the **simulated session**. The editor, fi
 1. **File → Open Folder…** (`Ctrl+K`) or the **Open Folder** button — this is the workspace and the cwd for workflow commands.
 2. Open a file from the tree (double-click) or **File → Open File…**.
 3. Debugger: **Attach**. Empty / `0` = simulated target. A real PID = `ptrace` on Linux.
-4. Workflow: drag **Node**, double-click, type e.g. `nmap -sn 127.0.0.1`, click **Run**. Off nodes are skipped.
+4. Workflow: drag **Node**, set toolbar **$ip**, keep `$ip` in the shell line, click **Run**. Off nodes are skipped.
 5. Chain nodes: connect output → input and use `{in}` in the next command.
 
 ### ptrace attach on Linux (Yama)
@@ -248,7 +253,8 @@ sudo apt install openjdk-21-jdk    # Kali에는 openjdk-17-jdk가 없을 수 있
 ```
 
 - 폴더 열기: 파일 트리 + 명령 작업 디렉터리
+- 아래 **Terminal** 탭에서 같은 폴더의 셸. `Ctrl`+`` ` ``
 - 글자 크기: View 메뉴 / `Ctrl` `+` `-` `0` / Ctrl+휠
 - 실제 PID attach는 Linux만. Windows는 시뮬레이터
-- 워크플로 노드는 **Node** 하나. Off면 실행만 건너뜀. `nmap` 등은 노드에 입력
+- 워크플로 노드는 **Node** 하나. `$ip`는 툴바에서 일괄 변경. Off면 실행만 건너뜀
 - Java 25면 Gradle 9.1.0 필요 (이 저장소에 포함)

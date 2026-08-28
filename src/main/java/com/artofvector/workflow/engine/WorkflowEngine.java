@@ -80,8 +80,11 @@ public final class WorkflowEngine {
         if (workingDirectory != null) {
             AppLog.info("Working folder: " + workingDirectory);
         }
+        if (!graph.ip().isBlank()) {
+            AppLog.info("$ip = " + graph.ip());
+        }
         for (WorkflowNode node : order) {
-            NodeContext context = new NodeContext(debugService, workingDirectory);
+            NodeContext context = new NodeContext(debugService, workingDirectory, graph.variables());
             for (Connection connection : graph.connections()) {
                 if (!connection.toNodeId().equals(node.id())) {
                     continue;

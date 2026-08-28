@@ -19,11 +19,17 @@ import com.artofvector.workspace.Workspace;
 
 public final class MainMenuBar extends JMenuBar {
 
-    public MainMenuBar(Workspace workspace, CodeEditorPanel editor, Runnable clearConsole, Runnable exit) {
+    public MainMenuBar(
+            Workspace workspace,
+            CodeEditorPanel editor,
+            Runnable clearConsole,
+            Runnable showTerminal,
+            Runnable exit
+    ) {
         setBackground(com.artofvector.ui.theme.UiTheme.BG_ELEVATED);
         add(fileMenu(workspace, editor, exit));
         add(editMenu(editor));
-        add(viewMenu(clearConsole));
+        add(viewMenu(clearConsole, showTerminal));
         add(helpMenu());
     }
 
@@ -71,7 +77,7 @@ public final class MainMenuBar extends JMenuBar {
         return menu;
     }
 
-    private JMenu viewMenu(Runnable clearConsole) {
+    private JMenu viewMenu(Runnable clearConsole, Runnable showTerminal) {
         JMenu menu = new JMenu("View");
         menu.add(item("Increase Font Size", null,
                 KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, ActionEvent.CTRL_MASK),
@@ -83,6 +89,9 @@ public final class MainMenuBar extends JMenuBar {
                 KeyStroke.getKeyStroke(KeyEvent.VK_0, ActionEvent.CTRL_MASK),
                 e -> UiTheme.resetFontSize()));
         menu.addSeparator();
+        menu.add(item("Terminal", UiIcons.Glyph.CONSOLE,
+                KeyStroke.getKeyStroke(KeyEvent.VK_BACK_QUOTE, ActionEvent.CTRL_MASK),
+                e -> showTerminal.run()));
         menu.add(item("Clear Console", UiIcons.Glyph.CLEAR, null, e -> clearConsole.run()));
         return menu;
     }

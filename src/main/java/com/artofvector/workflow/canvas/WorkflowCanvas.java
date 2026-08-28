@@ -30,6 +30,7 @@ import javax.swing.SwingUtilities;
 
 import com.artofvector.ui.theme.UiIcons;
 import com.artofvector.ui.theme.UiTheme;
+import com.artofvector.workflow.engine.CommandLine;
 import com.artofvector.workflow.model.Connection;
 import com.artofvector.workflow.model.Port;
 import com.artofvector.workflow.model.WorkflowGraph;
@@ -409,13 +410,14 @@ public final class WorkflowCanvas extends JPanel {
         g2.draw(dot);
     }
 
-    private static String subtitleOf(WorkflowNode node) {
+    private String subtitleOf(WorkflowNode node) {
         String subtitle = node.property("command", "");
         if (subtitle.isBlank()) {
             subtitle = node.properties().isEmpty()
                     ? ("COMMAND".equals(node.type()) ? "node" : node.type().toLowerCase().replace('_', ' '))
                     : node.properties().values().stream().findFirst().orElse(node.type());
         }
+        subtitle = CommandLine.expandIp(subtitle, graph.ip());
         return subtitle.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').strip();
     }
 

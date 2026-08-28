@@ -15,7 +15,7 @@ public final class RunCommandNode extends WorkflowNode {
 
     public RunCommandNode(NodeType type) {
         super(type.name(), type.title(), type.accent());
-        setProperty("command", "echo hello");
+        setProperty("command", "nmap -sn $ip");
     }
 
     @Override

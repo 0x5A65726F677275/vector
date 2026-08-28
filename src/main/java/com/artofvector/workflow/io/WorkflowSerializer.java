@@ -54,6 +54,7 @@ public final class WorkflowSerializer {
             nd.properties = node.properties();
             document.nodes.add(nd);
         }
+        document.ip = graph.ip();
         for (Connection connection : graph.connections()) {
             ConnectionDocument cd = new ConnectionDocument();
             cd.fromNode = connection.fromNodeId();
@@ -86,6 +87,9 @@ public final class WorkflowSerializer {
                 graph.addNode(node);
             }
         }
+        if (document.ip != null) {
+            graph.setIp(document.ip);
+        }
         if (document.connections != null) {
             for (ConnectionDocument cd : document.connections) {
                 graph.addConnection(new Connection(cd.fromNode, cd.fromPort, cd.toNode, cd.toPort));
@@ -98,6 +102,7 @@ public final class WorkflowSerializer {
     public static final class WorkflowDocument {
         public List<NodeDocument> nodes = new ArrayList<>();
         public List<ConnectionDocument> connections = new ArrayList<>();
+        public String ip;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

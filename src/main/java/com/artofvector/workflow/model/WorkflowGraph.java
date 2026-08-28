@@ -3,12 +3,14 @@ package com.artofvector.workflow.model;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public final class WorkflowGraph {
 
     private final List<WorkflowNode> nodes = new ArrayList<>();
     private final List<Connection> connections = new ArrayList<>();
+    private String ip = "127.0.0.1";
 
     public List<WorkflowNode> nodes() {
         return nodes;
@@ -92,6 +94,18 @@ public final class WorkflowGraph {
 
     public int nextOrder() {
         return nodes.stream().mapToInt(WorkflowNode::runOrder).max().orElse(0) + 1;
+    }
+
+    public String ip() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip == null ? "" : ip.strip();
+    }
+
+    public Map<String, String> variables() {
+        return Map.of("ip", ip == null ? "" : ip);
     }
 
     public void clear() {

@@ -7,6 +7,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.artofvector.log.AppLog;
 import com.artofvector.workflow.model.NodeContext;
@@ -14,11 +16,13 @@ import com.sun.jna.Platform;
 
 /**
  * Runs a user-authored command line and streams output to the console.
- * Placeholders {@code {in}}, {@code {out}}, {@code {stdout}} expand to the previous node's stdout.
+ * {@code $ip} / {@code {ip}} expand from the workflow toolbar.
+ * {@code {in}}, {@code {out}}, {@code {stdout}} expand to the previous node's stdout.
  */
 public final class CommandLine {
 
     public static final int TIMEOUT_MINUTES = 10;
+    private static final Pattern IP_TOKEN = Pattern.compile("(?i)\\$ip\\b");
 
     private CommandLine() {
     }
@@ -43,12 +47,23 @@ public final class CommandLine {
     }
 
     public static String expand(String command, NodeContext context) {
-        String incoming = pipelineText(context);
         String expanded = command == null ? "" : command;
+        expanded = expandIp(expanded, context == null ? "" : context.variable("ip"));
+        String incoming = pipelineText(context);
         expanded = expanded.replace("{in}", incoming);
         expanded = expanded.replace("{stdout}", incoming);
         expanded = expanded.replace("{out}", incoming);
         return expanded.trim();
+    }
+
+    public static String expandIp(String command, String ip) {
+        String value = ip == null ? "" : ip;
+        String expanded = command == null ? "" : command;
+        expanded = expanded.replace("${ip}", value);
+        expanded = expanded.replace("${IP}", value);
+        expanded = expanded.replace("{ip}", value);
+        expanded = expanded.replace("{IP}", value);
+        return IP_TOKEN.matcher(expanded).replaceAll(Matcher.quoteReplacement(value));
     }
 
     public static Result run(String command, NodeContext context) throws IOException, InterruptedException {

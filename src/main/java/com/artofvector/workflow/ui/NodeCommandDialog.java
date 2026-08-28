@@ -75,7 +75,7 @@ public final class NodeCommandDialog extends JDialog {
             enabledToggle.setForeground(on ? java.awt.Color.WHITE : UiTheme.TEXT_MUTED);
         });
 
-        JLabel hint = new JLabel("<html>Use <b>{in}</b> for the previous node's stdout. Long lines stay clipped on the canvas.</html>");
+        JLabel hint = new JLabel("<html>Use <b>$ip</b> for the toolbar target. <b>{in}</b> is the previous node's stdout.</html>");
         hint.setForeground(UiTheme.TEXT_DIM);
         hint.setFont(UiTheme.UI_FONT);
 

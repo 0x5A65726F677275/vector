@@ -16,6 +16,20 @@ import com.artofvector.workflow.nodes.NodeType;
 class CommandLineTest {
 
     @Test
+    void expandSubstitutesDollarIp() {
+        NodeContext context = new NodeContext(null, null, java.util.Map.of("ip", "10.1.1.1"));
+        assertEquals("nmap -sn 10.1.1.1", CommandLine.expand("nmap -sn $ip", context));
+        assertEquals("nmap -sV 10.1.1.1", CommandLine.expand("nmap -sV {ip}", context));
+        assertEquals("nmap -Pn 10.1.1.1", CommandLine.expand("nmap -Pn ${ip}", context));
+    }
+
+    @Test
+    void expandLeavesUnrelatedTokens() {
+        NodeContext context = new NodeContext(null, null, java.util.Map.of("ip", "10.1.1.1"));
+        assertEquals("echo $ipaddr", CommandLine.expand("echo $ipaddr", context));
+    }
+
+    @Test
     void expandSubstitutesPreviousStdout() {
         NodeContext context = new NodeContext(null);
         context.putInput("in", "127.0.0.1");

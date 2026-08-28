@@ -1,17 +1,23 @@
 package com.artofvector.workflow.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.datatransfer.DataFlavor;
 import java.io.File;
 
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import com.artofvector.debugger.DebugService;
@@ -36,6 +42,7 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
     private final WorkflowCanvas canvas = new WorkflowCanvas(graph);
     private final WorkflowEngine engine = new WorkflowEngine();
     private final WorkflowSerializer serializer = new WorkflowSerializer();
+    private final JTextField ipField = new JTextField("127.0.0.1", 16);
 
     public WorkflowPanel(DebugService debugService, Workspace workspace) {
         super(new BorderLayout());
@@ -51,7 +58,8 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
         toolbar.add(UiControls.toolButton("Load", UiIcons.Glyph.LOAD, this::load));
         toolbar.add(UiControls.toolButton("Clear", UiIcons.Glyph.CLEAR, this::clear));
         toolbar.add(UiControls.toolButton("Reset View", UiIcons.Glyph.RESET, canvas::resetView));
-        javax.swing.JLabel hint = new javax.swing.JLabel("  Drag Node → On/Off → set Run order → double-click to edit → Run");
+        toolbar.add(ipBar());
+        JLabel hint = new JLabel("  Drag Node → use $ip → On/Off → Run");
         hint.setForeground(UiTheme.TEXT_MUTED);
         hint.setFont(UiTheme.UI_FONT);
         toolbar.add(hint);
@@ -122,8 +130,10 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
             try {
                 WorkflowGraph loaded = serializer.load(chooser.getSelectedFile().toPath());
                 graph.clear();
+                graph.setIp(loaded.ip());
                 loaded.nodes().forEach(graph::addNode);
                 loaded.connections().forEach(graph::addConnection);
+                ipField.setText(graph.ip());
                 canvas.select(null);
                 canvas.notifyChanged();
                 canvas.repaint();
@@ -148,6 +158,48 @@ public final class WorkflowPanel extends JPanel implements WorkbenchModule {
             chooser.setCurrentDirectory(workspace.rootFolder().toFile());
         }
         return chooser;
+    }
+
+    private JPanel ipBar() {
+        JLabel label = new JLabel("$ip");
+        label.setForeground(UiTheme.TEXT_MUTED);
+        label.setFont(UiTheme.UI_FONT_BOLD);
+        ipField.setFont(UiTheme.MONO_FONT);
+        ipField.setBackground(UiTheme.BG_INPUT);
+        ipField.setForeground(UiTheme.TEXT);
+        ipField.setCaretColor(UiTheme.TEXT);
+        ipField.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(UiTheme.BORDER),
+                new EmptyBorder(5, 8, 5, 8)));
+        ipField.setPreferredSize(new Dimension(180, 28));
+        ipField.setToolTipText("Replaces $ip in every node");
+        ipField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                applyIp();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                applyIp();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                applyIp();
+            }
+        });
+        JPanel wrap = new JPanel(new BorderLayout(8, 0));
+        wrap.setOpaque(false);
+        wrap.setBorder(new EmptyBorder(0, 10, 0, 4));
+        wrap.add(label, BorderLayout.WEST);
+        wrap.add(ipField, BorderLayout.CENTER);
+        return wrap;
+    }
+
+    private void applyIp() {
+        graph.setIp(ipField.getText());
+        canvas.repaint();
     }
 
     private final class DropHandler extends TransferHandler {
