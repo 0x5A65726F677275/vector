@@ -55,6 +55,10 @@ public final class MainMenuBar extends JMenuBar {
             }
         }));
         menu.addSeparator();
+        menu.add(item("Close", UiIcons.Glyph.CLEAR,
+                KeyStroke.getKeyStroke(KeyEvent.VK_W, ActionEvent.CTRL_MASK), e -> editor.closeCurrent()));
+        menu.add(item("Close All", UiIcons.Glyph.CLEAR, null, e -> editor.closeAll()));
+        menu.addSeparator();
         menu.add(item("Exit", UiIcons.Glyph.STOP,
                 KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK), e -> exit.run()));
         return menu;

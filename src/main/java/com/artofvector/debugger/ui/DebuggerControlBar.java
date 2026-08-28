@@ -1,6 +1,5 @@
 package com.artofvector.debugger.ui;
 
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import com.artofvector.debugger.engine.DebugException;
@@ -28,28 +27,19 @@ public final class DebuggerControlBar extends JPanel {
     }
 
     private void attach() {
-        String input = JOptionPane.showInputDialog(
-                this,
-                "Process id to attach (leave empty to use the simulated target):",
-                "Attach",
-                JOptionPane.QUESTION_MESSAGE
-        );
-        if (input == null) {
-            return;
-        }
-        try {
-            String trimmed = input.trim();
-            if (trimmed.isEmpty() || trimmed.equals("0")) {
-                session.attachSimulated();
-            } else {
-                session.attach(Integer.parseInt(trimmed));
+        AttachProcessDialog.show(this).ifPresent(choice -> {
+            try {
+                if (choice.simulated()) {
+                    session.attachSimulated();
+                } else {
+                    session.attach((int) choice.pid());
+                }
+            } catch (DebugException e) {
+                AppLog.error("Attach failed", e);
+                javax.swing.JOptionPane.showMessageDialog(
+                        this, e.getMessage(), "Attach failed", javax.swing.JOptionPane.ERROR_MESSAGE);
             }
-        } catch (NumberFormatException e) {
-            AppLog.warn("PID must be an integer");
-        } catch (DebugException e) {
-            AppLog.error("Attach failed", e);
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Attach failed", JOptionPane.ERROR_MESSAGE);
-        }
+        });
     }
 
     private void run() {

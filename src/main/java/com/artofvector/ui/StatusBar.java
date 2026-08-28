@@ -26,7 +26,7 @@ public final class StatusBar extends JPanel {
 
         left.setForeground(UiTheme.TEXT_MUTED);
         left.setFont(UiTheme.UI_FONT);
-        left.setIcon(UiIcons.of(UiIcons.Glyph.EDITOR, 14));
+        left.setIcon(UiIcons.of(UiIcons.Glyph.PAUSE, 14));
         folder.setForeground(UiTheme.TEXT);
         folder.setFont(UiTheme.UI_FONT);
         folder.setIcon(UiIcons.of(UiIcons.Glyph.FOLDER, 14));
@@ -49,7 +49,7 @@ public final class StatusBar extends JPanel {
         } else if ("Workflow".equals(text)) {
             left.setIcon(UiIcons.of(UiIcons.Glyph.WORKFLOW, 14));
         } else {
-            left.setIcon(UiIcons.of(UiIcons.Glyph.EDITOR, 14));
+            left.setIcon(UiIcons.of(UiIcons.Glyph.PAUSE, 14));
         }
     }
 

@@ -8,7 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -41,10 +43,22 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
         toolbar.add(UiControls.toolButton("Save", UiIcons.Glyph.SAVE, this::saveCurrent));
         toolbar.add(UiControls.toolButton("Save As", UiIcons.Glyph.SAVE, this::saveCurrentAs));
         toolbar.add(UiControls.toolButton("New", UiIcons.Glyph.NEW_FILE, this::newUntitled));
+        toolbar.add(UiControls.toolButton("Close", UiIcons.Glyph.CLEAR, this::closeCurrent));
 
         tabs.setBackground(UiTheme.BG_PANEL);
         tabs.setForeground(UiTheme.TEXT);
         tabs.setFont(UiTheme.UI_FONT);
+        tabs.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (javax.swing.SwingUtilities.isMiddleMouseButton(e)) {
+                    int index = tabs.indexAtLocation(e.getX(), e.getY());
+                    if (index >= 0) {
+                        closeAt(index);
+                    }
+                }
+            }
+        });
 
         add(toolbar, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
@@ -109,7 +123,7 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
 
     @Override
     public String tabTitle() {
-        return "Editor";
+        return "Idle";
     }
 
     @Override
@@ -132,6 +146,7 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
         wrapper.add(tab.component(), BorderLayout.CENTER);
         tabMap.put(wrapper, tab);
         tabs.addTab(tab.title(), wrapper);
+        tabs.setTabComponentAt(tabs.indexOfComponent(wrapper), new CloseableTab(tab, wrapper));
         tabs.setSelectedComponent(wrapper);
         tab.setDirtyListener(() -> refreshTitle(wrapper, tab));
         if (gutterController != null) {
@@ -141,8 +156,13 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
 
     private void refreshTitle(JPanel wrapper, EditorTab tab) {
         int index = tabs.indexOfComponent(wrapper);
-        if (index >= 0) {
-            tabs.setTitleAt(index, tab.title());
+        if (index < 0) {
+            return;
+        }
+        tabs.setTitleAt(index, tab.title());
+        java.awt.Component header = tabs.getTabComponentAt(index);
+        if (header instanceof CloseableTab closeable) {
+            closeable.setTitle(tab.title());
         }
     }
 
@@ -192,34 +212,61 @@ public final class CodeEditorPanel extends JPanel implements WorkbenchModule {
     }
 
     public boolean closeCurrent() {
-        EditorTab tab = currentTab();
-        if (tab == null) {
+        int index = tabs.getSelectedIndex();
+        if (index < 0) {
             return true;
         }
-        if (!tab.confirmClose()) {
-            return false;
-        }
-        JPanel wrapper = (JPanel) tabs.getSelectedComponent();
-        tabMap.remove(wrapper);
-        tabs.remove(wrapper);
-        if (tabs.getTabCount() == 0) {
-            newUntitled();
-        }
-        return true;
+        return closeAt(index);
     }
 
     public boolean closeAll() {
         while (tabs.getTabCount() > 0) {
-            tabs.setSelectedIndex(0);
-            EditorTab tab = currentTab();
-            if (tab != null && !tab.confirmClose()) {
+            if (!closeAt(0)) {
                 return false;
             }
-            JPanel wrapper = (JPanel) tabs.getComponentAt(0);
-            tabMap.remove(wrapper);
-            tabs.remove(0);
         }
         return true;
+    }
+
+    private boolean closeAt(int index) {
+        if (index < 0 || index >= tabs.getTabCount()) {
+            return true;
+        }
+        JPanel wrapper = (JPanel) tabs.getComponentAt(index);
+        EditorTab tab = tabMap.get(wrapper);
+        if (tab != null && !tab.confirmClose()) {
+            return false;
+        }
+        tabMap.remove(wrapper);
+        tabs.remove(index);
+        return true;
+    }
+
+    private final class CloseableTab extends JPanel {
+        private final JLabel title = new JLabel();
+
+        private CloseableTab(EditorTab tab, JPanel wrapper) {
+            super(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 0));
+            setOpaque(false);
+            title.setText(tab.title());
+            title.setForeground(UiTheme.TEXT);
+            title.setFont(UiTheme.UI_FONT);
+            JButton close = new JButton("×");
+            close.setFont(UiTheme.UI_FONT);
+            close.setForeground(UiTheme.TEXT_MUTED);
+            close.setBorder(new javax.swing.border.EmptyBorder(0, 6, 0, 2));
+            close.setContentAreaFilled(false);
+            close.setFocusPainted(false);
+            close.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            close.setToolTipText("Close");
+            close.addActionListener(e -> closeAt(tabs.indexOfComponent(wrapper)));
+            add(title);
+            add(close);
+        }
+
+        private void setTitle(String text) {
+            title.setText(text);
+        }
     }
 
     private JFileChooser chooser() {

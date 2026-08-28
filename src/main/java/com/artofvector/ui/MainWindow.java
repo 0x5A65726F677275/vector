@@ -124,7 +124,7 @@ public final class MainWindow {
             }
         });
 
-        statusBar.setLeft("Editor");
+        statusBar.setLeft("Idle");
         statusBar.setRight("idle");
         AppLog.info(Version.NAME + " " + Version.NUMBER + " started.");
 
