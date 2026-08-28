@@ -224,14 +224,30 @@ public final class EditorTab {
     }
 
     private void onMouseWheel(MouseWheelEvent event) {
-        if ((event.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0) {
+        if ((event.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0) {
+            if (event.getPreciseWheelRotation() < 0) {
+                UiTheme.increaseFontSize();
+            } else {
+                UiTheme.decreaseFontSize();
+            }
+            event.consume();
             return;
         }
-        if (event.getWheelRotation() < 0) {
-            UiTheme.increaseFontSize();
-        } else {
-            UiTheme.decreaseFontSize();
+        // A wheel listener on the text area steals events from RTextScrollPane.
+        if (scroll != null) {
+            scroll.dispatchEvent(new MouseWheelEvent(
+                    scroll,
+                    event.getID(),
+                    event.getWhen(),
+                    event.getModifiersEx(),
+                    event.getX(),
+                    event.getY(),
+                    event.getClickCount(),
+                    event.isPopupTrigger(),
+                    event.getScrollType(),
+                    event.getScrollAmount(),
+                    event.getWheelRotation(),
+                    event.getPreciseWheelRotation()));
         }
-        event.consume();
     }
 }
