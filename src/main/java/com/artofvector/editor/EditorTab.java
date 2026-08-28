@@ -242,6 +242,8 @@ public final class EditorTab {
                     event.getModifiersEx(),
                     event.getX(),
                     event.getY(),
+                    event.getXOnScreen(),
+                    event.getYOnScreen(),
                     event.getClickCount(),
                     event.isPopupTrigger(),
                     event.getScrollType(),
